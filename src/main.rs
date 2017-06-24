@@ -3,7 +3,8 @@ extern crate stachemu;
 use stachemu::compiler;
 
 fn main() {
-    let rules = compiler::compile("{{=Node}}
+    let rules = compiler::compile("
+{{=Node}}
    {{#root}}
       <TITLE>{{name}}</TITLE>
       <H1>{{description}}</H1>
@@ -23,5 +24,6 @@ fn main() {
       {{/nodes}}
    </DL><p>
 {{/Node}}".to_string()).unwrap();
+
     println!("{:?}", rules);
 }

@@ -1,8 +1,29 @@
 use super::rule::Rule;
 use super::error::CompilingError;
-use super::CompilingStatus;
+use super::status::Status;
 
 use regex::Regex;
+
+type CompilingStatus = Status<CompilingError>;
+
+impl CompilingStatus {
+    fn update(&mut self, s: &str) {
+        let lines: Vec<&str> = s.lines().collect();
+        let lines_len: i32 = lines.len() as i32;
+
+        if lines_len == 1 {
+            if s == "\n" {
+                self.line_index += 1;
+                self.column_index = 0;
+            } else {
+                self.column_index += lines[0].len() as i32;
+            }
+        } else if let Some(line) = lines.last() {
+            self.column_index += lines_len;
+            self.line_index = line.len() as i32;
+        }
+    }
+}
 
 struct Compiler {
     status: CompilingStatus,
@@ -10,6 +31,7 @@ struct Compiler {
     output: Vec<Rule>
 }
 
+// test: https://regex101.com/r/XJ6sWg/1
 static REGEX: &'static str = r"^\{\{(?P<symbol>[=^#/!?>&]?)(?P<key>[ \sa-zA-Z]+)\}\}";
 
 impl Iterator for Compiler {
@@ -32,15 +54,10 @@ impl Iterator for Compiler {
             let (s, remain) = old_input.split_at(len);
 
             // updates compiler status
-            let lines: Vec<&str> = s.lines().collect();
-            let lines_len: i32 = lines.len() as i32;
+            self.status.update(s);
 
-            if lines_len == 1 {
-                self.status.line_index += lines[0].len() as i32;
-            } else if let Some(line) = lines.last() {
-                self.status.column_index += lines_len;
-                self.status.line_index = line.len() as i32;
-            }
+            // updates template input
+            new_input = Some(remain.to_string());
 
             // updates output rules
             self.output.push(
@@ -49,22 +66,14 @@ impl Iterator for Compiler {
                     capture["key"].to_string()
                 )
             );
-
-            // updates input
-            new_input = Some(remain.to_string());
         } else { // fills the default rule
             let (s, remain) = old_input.split_at(1);
             let mut new_rule: Option<Rule> = None;
 
             // updates compiler status
-            if s == "\n" {
-                self.status.line_index += 1;
-                self.status.column_index = 0;
-            } else {
-                self.status.column_index += 1;
-            }
+            self.status.update(s);
 
-            // updates input
+            // updates template input
             new_input = Some(remain.to_string());
 
             // updates output rules
