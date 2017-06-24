@@ -20,14 +20,18 @@ impl Iterator for Compiler {
             return None;
         }
 
+        // TODO add regex builder logic from rule configuration
         let re = Regex::new(REGEX).unwrap();
+
         let new_input: Option<String>;
         let old_input = self.input.clone();
 
+        // matches some specific rules
         if let Some(capture) = re.captures(&self.input) {
             let len = capture[0].len();
             let (s, remain) = old_input.split_at(len);
 
+            // updates compiler status
             let lines: Vec<&str> = s.lines().collect();
             let lines_len: i32 = lines.len() as i32;
 
@@ -38,6 +42,7 @@ impl Iterator for Compiler {
                 self.status.line_index = line.len() as i32;
             }
 
+            // updates output rules
             self.output.push(
                 Rule::Symbolic(
                     capture["symbol"].to_string(),
@@ -45,11 +50,13 @@ impl Iterator for Compiler {
                 )
             );
 
+            // updates input
             new_input = Some(remain.to_string());
-        } else {
+        } else { // fills the default rule
             let (s, remain) = old_input.split_at(1);
             let mut new_rule: Option<Rule> = None;
 
+            // updates compiler status
             if s == "\n" {
                 self.status.line_index += 1;
                 self.status.column_index = 0;
@@ -57,8 +64,10 @@ impl Iterator for Compiler {
                 self.status.column_index += 1;
             }
 
+            // updates input
             new_input = Some(remain.to_string());
 
+            // updates output rules
             match self.output.last_mut() {
                 Some(&mut Rule::Default(ref mut value)) => {
                     value.push_str(s);
@@ -73,6 +82,7 @@ impl Iterator for Compiler {
             }
         }
 
+        // updates compiler input (effective)
         if let Some(input) = new_input {
             self.input = input;
         }
