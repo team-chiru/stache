@@ -1,16 +1,8 @@
 use super::rule::Rule;
 use super::error::CompilingError;
+use super::CompilingStatus;
 
 use regex::Regex;
-
-#[derive(Debug, Clone)]
-struct Status<T> {
-    error: Option<T>,
-    line_index: i32,
-    column_index: i32
-}
-
-type CompilingStatus = Status<CompilingError>;
 
 struct Compiler {
     status: CompilingStatus,
@@ -91,7 +83,7 @@ impl Iterator for Compiler {
 
 pub fn compile(tmpl: String) -> Result<Vec<Rule>, CompilingError> {
     let mut compiler = Compiler {
-        status: Status {
+        status: CompilingStatus {
             error: None,
             line_index: 0,
             column_index: 0
