@@ -6,11 +6,10 @@ pub enum CompilingError {
     InvalidStatement(String)
 }
 
-use self::CompilingError::*;
 impl fmt::Display for CompilingError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            InvalidStatement(ref state) =>
+            CompilingError::InvalidStatement(ref state) =>
                 write!(f, "InvalidStatement error: {}", state)
         }
     }
@@ -19,7 +18,35 @@ impl fmt::Display for CompilingError {
 impl error::Error for CompilingError {
     fn description(&self) -> &str {
         match *self {
-            InvalidStatement { .. } => "an invalid sequence of states has occurred",
+            CompilingError::InvalidStatement { .. } => "an invalid sequence of states has occurred",
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        match self {
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum ExecutionError {
+    InvalidStatement(String)
+}
+
+impl fmt::Display for ExecutionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            ExecutionError::InvalidStatement(ref state) =>
+                write!(f, "InvalidStatement error: {}", state)
+        }
+    }
+}
+
+impl error::Error for ExecutionError {
+    fn description(&self) -> &str {
+        match *self {
+            ExecutionError::InvalidStatement { .. } => "an invalid sequence of states has occurred",
         }
     }
 
