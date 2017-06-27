@@ -11,3 +11,4 @@ name = "stachemu"
 
 [dependencies]
 regex = "*"
+serde_json = "*"

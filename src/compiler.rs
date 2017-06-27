@@ -115,8 +115,6 @@ pub fn compile(tmpl: String) -> Result<Vec<Rule>, CompilingError> {
         if let Some(error) = status.error {
             return Err(error);
         }
-
-        println!("{:?}", status);
     }
 
     Ok(compiler.output)

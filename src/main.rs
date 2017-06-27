@@ -1,6 +1,10 @@
 extern crate stachemu;
-
 use stachemu::compiler;
+use stachemu::processor;
+use stachemu::engines::mustache::Builder;
+
+extern crate serde_json;
+use serde_json::Value;
 
 fn main() {
     let rules = compiler::compile("
@@ -25,5 +29,5 @@ fn main() {
    </DL><p>
 {{/Node}}".to_string()).unwrap();
 
-    println!("{:?}", rules);
+    processor::process::<Builder, Value>(rules).unwrap();
 }
