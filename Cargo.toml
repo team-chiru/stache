@@ -5,3 +5,10 @@ repository = "https://github.com/team-chiru/stachemu"
 version = "0.0.1"
 authors = ["team-chiru@protonmail.com"]
 license = "MIT/Apache-2.0"
+
+[[bin]]
+name = "stachemu"
+
+[dependencies]
+regex = "*"
+serde_json = "*"
