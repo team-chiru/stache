@@ -1,7 +1,7 @@
 extern crate serde_json;
 use self::serde_json::Value;
 
-use processor::{ RuleEngine, NextRule };
+use processor::{ TemplateEngine, NextRule };
 use error::ExecutionError;
 use rule::Rule;
 
@@ -88,7 +88,7 @@ impl Builder {
     }
 }
 
-impl RuleEngine<String> for Builder {
+impl TemplateEngine<String> for Builder {
     fn execute(&mut self, rule: &Rule) -> Result<NextRule, ExecutionError> {
         match *rule {
             Rule::Symbolic(ref symbol, ref key) => {
