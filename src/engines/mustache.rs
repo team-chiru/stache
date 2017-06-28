@@ -5,13 +5,21 @@ use processor::{ RuleEngine, NextRule };
 use error::ExecutionError;
 use rule::Rule;
 
-pub struct Builder {}
+pub struct Builder {
+    data: Value,
+    output: String
+}
 
-impl RuleEngine<Value> for Builder {
-    fn configure() -> Self {
-        Builder {}
+impl Builder {
+    pub fn configure(json: Value) -> Self {
+        Builder {
+            data: json,
+            output: "".to_string()
+        }
     }
+}
 
+impl RuleEngine<String> for Builder {
     fn execute(&mut self, rule: &Rule) -> Result<NextRule, ExecutionError> {
         match *rule {
             Rule::Symbolic(ref symbol, ref key) => {
@@ -32,13 +40,13 @@ impl RuleEngine<Value> for Builder {
                 }
             },
             Rule::Default(ref value) => {
-                println!("{:?}", value);
+                self.output.push_str(value);
                 Ok(None)
             }
         }
     }
 
-    fn output(&self) -> Value {
-        Value::Null
+    fn output(&self) -> String {
+        self.output.clone()
     }
 }
