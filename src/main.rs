@@ -7,9 +7,12 @@ use stachemu::engines::mustache::Builder;
 extern crate serde_json;
 use serde_json::Value;
 
+use stachemu::test::*;
+use stachemu::generator::*;
+
 fn main() {
-    let raw = file::read("samples/sample.mustache").unwrap();
-    let rules = compile(raw).unwrap();
+/*    let raw = file::read("samples/sample.mustache").unwrap();
+    let rules = compiler::compile(raw).unwrap();
 
     let data =
 r#"{
@@ -23,6 +26,15 @@ r#"{
     let json: Value = serde_json::from_str(data).unwrap();
     let mut builder = Builder::configure(json);
 
-    let result = process::<Builder, String>(rules, &mut builder);
-    println!("{}", result.unwrap());
+    processor::process::<Builder, String>(rules, &mut builder).unwrap();
+
+ */
+    let path_yaml = "specs/mustache/specs/sections.yml";
+    let path_json = "specs/mustache/specs/sections.json";
+
+
+    let test_yaml: Test = generate_from_yaml(String::from(path_yaml));
+    let test_json: Test = generate_from_json(String::from(path_json));
+
+
 }
