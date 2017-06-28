@@ -66,6 +66,26 @@ impl Builder {
             )
         }
     }
+
+    fn interpolate_section(&mut self, key: &String) -> Result<NextRule, ExecutionError> {
+        let close_rule = Rule::Symbolic("/".to_string(), key.clone());
+
+        if let Some(json_value) = self.data.get(key) {
+            use self::serde_json::Value::*;
+
+            match json_value.clone() {
+                Bool(b) => unimplemented!(),
+                Number(n) => unimplemented!(),
+                String(s) => unimplemented!(),
+                Bool(b) => unimplemented!(),
+                Array(arr) => unimplemented!(),
+                Object(obj) => unimplemented!(),
+                Null => unimplemented!()
+            };
+        }
+
+        Ok(Some(close_rule))
+    }
 }
 
 impl RuleEngine<String> for Builder {
@@ -74,7 +94,7 @@ impl RuleEngine<String> for Builder {
             Rule::Symbolic(ref symbol, ref key) => {
                 match symbol.as_ref() {
                     "" => self.interpolate(key),
-                    "#" => Ok(None),
+                    "#" => self.interpolate_section(key),
                     "^" => Ok(None),
                     "/" => Ok(None),
                     ">" => Ok(None),
