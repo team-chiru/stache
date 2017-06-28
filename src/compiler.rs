@@ -32,7 +32,7 @@ struct Compiler {
 }
 
 // test: https://regex101.com/r/XJ6sWg/1
-static REGEX: &'static str = r"^\{\{(?P<symbol>[=^#/!?>&]?)(?P<key>[ \sa-zA-Z]+)\}\}";
+static REGEX: &'static str = r"^\{\{(?P<symbol>[=^#/!?>&]?)(?P<key>[ \sa-zA-Z.]+)\}\}";
 
 impl Iterator for Compiler {
     type Item = CompilingStatus;
