@@ -7,7 +7,7 @@ use stachemu::engines::mustache::Builder;
 extern crate serde_json;
 use serde_json::Value;
 
-use stachemu::test::*;
+use stachemu::specs::*;
 use stachemu::generator::*;
 
 fn main() {
@@ -33,8 +33,8 @@ r#"{
     let path_json = "specs/mustache/specs/sections.json";
 
 
-    let test_yaml: Test = generate_from_yaml(String::from(path_yaml));
-    let test_json: Test = generate_from_json(String::from(path_json));
+    let test_yaml: Specs = generate_from_yaml(String::from(path_yaml));
+    let test_json: Specs = generate_from_json(String::from(path_json));
 
 
 }

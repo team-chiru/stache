@@ -3,16 +3,16 @@ extern crate serde_yaml;
 extern crate serde_json;
 
 use file::*;
-use test::Test;
+use specs::Specs;
 
 struct GeneratorX {}
 
-pub fn generate_from_yaml(path: String) -> Test {
+pub fn generate_from_yaml(path: String) -> Specs {
     let f = read(&path).unwrap();
 
     println!("{:?}",f);
 
-    Test{
+    Specs{
         name: String::from(" "),
         desc: String::from(" "),
         data: String::from(" "),
@@ -21,12 +21,12 @@ pub fn generate_from_yaml(path: String) -> Test {
     }
 }
 
-pub fn generate_from_json(path: String) -> Test {
+pub fn generate_from_json(path: String) -> Specs {
     let f = read(&path).unwrap();
 
     println!("{:?}",f);
 
-    Test{
+    Specs{
         name: String::from(" "),
         desc: String::from(" "),
         data: String::from(" "),

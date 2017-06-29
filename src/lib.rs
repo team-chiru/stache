@@ -10,4 +10,4 @@ pub mod engines;
 
 pub mod file;
 pub mod generator;
-pub mod test;
+pub mod specs;

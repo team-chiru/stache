@@ -1,5 +1,5 @@
 
-pub struct Test {
+pub struct Specs {
     pub name: String,
     pub desc: String,
     pub data: String,
