@@ -9,5 +9,4 @@ pub mod processor;
 pub mod engines;
 
 pub mod file;
-pub mod generator;
-pub mod specs;
+pub mod spec;
