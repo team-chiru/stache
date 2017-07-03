@@ -1,28 +1,37 @@
 extern crate stachemu;
-use stachemu::compiler::compile;
-use stachemu::file;
-use stachemu::processor::process;
-use stachemu::engines::mustache::Builder;
+extern crate serde_yaml;
 
 extern crate serde_json;
 use serde_json::Value;
 
-fn main() {
-    let raw = file::read("samples/sample.mustache").unwrap();
-    let rules = compile(raw).unwrap();
+macro_rules! get_spec {
+    ($path:expr, $name:ident) => {
+        let path = String::from($path);
+        let name = String::from(stringify!($name));
 
-    let data =
-r#"{
-    "name": "NAME",
-    "description": "DESCRIPTION",
-    "url": {
-        "name": "URL"
+        if let Some(test) = Test::get(path, name) {
+            test
+        } else {
+            panic!("Test not found")
+        }
     }
-}"#;
-
-    let json: Value = serde_json::from_str(data).unwrap();
-    let mut builder = Builder::configure(json);
-
-    let result = process::<Builder, String>(rules, &mut builder);
-    println!("{}", result.unwrap());
 }
+
+macro_rules! make_spec {
+    ($path:expr => $name:ident) => {
+        use stachemu::spec::Test;
+
+        #[test]
+        pub fn $name () {
+            let test = get_spec!($path, $name);
+            let data = test.data;
+
+        }
+    }
+}
+
+mod test {
+    make_spec!("specs/mustache/specs/interpolation.yml" => no_interpolation);
+}
+
+fn main() {}

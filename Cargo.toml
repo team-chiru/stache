@@ -11,4 +11,7 @@ name = "stachemu"
 
 [dependencies]
 regex = "*"
+serde = "*"
+serde_derive ="*"
 serde_json = "*"
+serde_yaml = "*"
