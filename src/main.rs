@@ -1,14 +1,37 @@
 extern crate stachemu;
-use stachemu::file;
 extern crate serde_yaml;
 
-use stachemu::spec::Spec;
+extern crate serde_json;
+use serde_json::Value;
 
-fn main() {
-    let spec_yaml = file::read("specs/mustache/specs/sections.yml").unwrap();
+macro_rules! get_spec {
+    ($path:expr, $name:ident) => {
+        let path = String::from($path);
+        let name = String::from(stringify!($name));
 
-    let spec: Spec = serde_yaml::from_str(&spec_yaml).unwrap();
-    for test in spec.tests {
-        println!("{:?}", test.name);
+        if let Some(test) = Test::get(path, name) {
+            test
+        } else {
+            panic!("Test not found")
+        }
     }
 }
+
+macro_rules! make_spec {
+    ($path:expr => $name:ident) => {
+        use stachemu::spec::Test;
+
+        #[test]
+        pub fn $name () {
+            let test = get_spec!($path, $name);
+            let data = test.data;
+
+        }
+    }
+}
+
+mod test {
+    make_spec!("specs/mustache/specs/interpolation.yml" => no_interpolation);
+}
+
+fn main() {}
