@@ -13,11 +13,13 @@ macro_rules! get_spec {
     }};
 }
 
-macro_rules! make_spec {
+macro_rules! test_spec {
     ($path:expr => $name:ident) => {
         use stachemu::spec::Test;
-        use stachemu::compiler::compile;
-        use stachemu::processor::process;
+
+        use stachemu::compile;
+        use stachemu::process;
+
         use stachemu::engines::mustache::Builder;
 
         #[test]
@@ -34,6 +36,6 @@ macro_rules! make_spec {
     }
 }
 
-mod test {
-    make_spec!("specs/mustache/specs/interpolation.yml" => no_interpolation);
+mod mustache {
+    test_spec!("specs/mustache/specs/interpolation.yml" => no_interpolation);
 }

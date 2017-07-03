@@ -2,12 +2,16 @@ extern crate regex;
 
 #[macro_use] extern crate serde_derive;
 
-pub mod compiler;
+mod compiler;
+pub use compiler::compile;
+
+mod processor;
+pub use processor::process;
+
 pub mod rule;
 pub mod error;
 
 pub mod status;
-pub mod processor;
 pub mod engines;
 
 pub mod file;
