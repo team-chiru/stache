@@ -16,6 +16,7 @@ pub struct Test {
     pub desc: String,
     pub data: Value,
     pub template: String,
+    pub expected: String,
 }
 
 impl Test {
