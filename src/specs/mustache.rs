@@ -8,8 +8,7 @@ use self::serde_json::Value;
 
 use file;
 use compile;
-use process;
-use processor::TemplateEngine;
+use engines::processor::{ TemplateEngine, Engine };
 
 use super::spec::{ Test, Spec };
 
@@ -47,10 +46,10 @@ impl MustacheSpec {
 
 impl MustacheTest {
     pub fn process<T>(&self) -> String
-    where T: TemplateEngine<Value, String> {
+    where T: TemplateEngine<Value, String> + Engine<Value, String> {
         let mut engine: T = T::configure(self.data.clone());
         let rules = compile(self.template.clone()).unwrap();
-        process::<T, Value, String>(rules, &mut engine).unwrap()
+        engine.process(rules).unwrap()
     }
 }
 

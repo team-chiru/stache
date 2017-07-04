@@ -35,16 +35,17 @@ impl Iterator for Processor {
     }
 }
 
-pub fn process<E, I, O>(tmpl: Template, engine: &mut E) -> Result<O, ExecutionError>
-where E: TemplateEngine<I, O> {
-    let mut p = Processor::new(tmpl);
+pub trait Engine<I, O> where Self: TemplateEngine<I, O> {
+    fn process(&mut self, tmpl: Template) -> Result<O, ExecutionError> {
+        let mut p = Processor::new(tmpl);
 
-    while let Some(rule) = p.next() {
-        match engine.execute(&rule) {
-            Err(err) => return Err(err),
-            Ok(next) => p.update_to_next(next)
+        while let Some(rule) = p.next() {
+            match self.execute(&rule) {
+                Err(err) => return Err(err),
+                Ok(next) => p.update_to_next(next)
+            }
         }
-    }
 
-    Ok(engine.output())
+        Ok(self.output())
+    }
 }

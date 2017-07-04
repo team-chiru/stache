@@ -4,12 +4,10 @@ extern crate regex;
 mod compiler;
 pub use compiler::compile;
 
-mod processor;
-pub use processor::process;
+pub mod engines;
 
 pub mod rule;
 pub mod error;
 pub mod status;
-pub mod engines;
 pub mod file;
 pub mod specs;
