@@ -1,41 +1,61 @@
+#![feature(plugin)]
+#![cfg_attr(test, plugin(stainless))]
+
 extern crate stachemu;
+use stachemu::file;
 
-macro_rules! get_spec {
-    ($path:expr, $name:ident) => {{
-        let path = String::from($path);
-        let name = String::from(stringify!($name));
+use stachemu::specs::mustache::{ MustacheSpec, MustacheTest };
+use stachemu::engines::mustache::Builder;
 
-        if let Some(test) = Test::get(path, name) {
-            test
-        } else {
-            panic!("Test not found")
+describe! mustache {
+    before_each {
+        let base = String::from("specs/mustache/specs/");
+    }
+
+    describe! interpolation {
+        before_each {
+            let path = base + "interpolation.yml";
+            let spec = MustacheSpec::from_path(&path);
         }
-    }};
-}
 
-macro_rules! test_spec {
-    ($path:expr => $name:ident) => {
-        use stachemu::spec::Test;
+        it "No Interpolation" {
+            let test = spec.get("No Interpolation");
+            assert!(test.expected == test.process::<Builder>())
+        }
 
-        use stachemu::compile;
-        use stachemu::process;
+        it "Basic Interpolation" {
+            let test = spec.get("Basic Interpolation");
+            assert!(test.expected == test.process::<Builder>())
+        }
 
-        use stachemu::engines::mustache::Builder;
+        it "HTML Escaping" {
+            let test = spec.get("HTML Escaping");
+            assert!(test.expected == test.process::<Builder>())
+        }
 
-        #[test]
-        pub fn $name () {
-            let test = get_spec!($path, $name);
-            let rules = compile(test.template).unwrap();
-            let mut builder = Builder::configure(test.data);
+        it "Triple Mustache" {
+            let test = spec.get("Triple Mustache");
+            assert!(test.expected == test.process::<Builder>())
+        }
 
-            let result = process::<Builder, String>(rules, &mut builder);
-            if test.expected != result.unwrap() {
-                panic!("Unimplemented spec")
-            }
+        it "Ampersand" {
+            let test = spec.get("Ampersand");
+            assert!(test.expected == test.process::<Builder>())
+        }
+
+        it "Basic Integer Interpolation" {
+            let test = spec.get("Basic Integer Interpolation");
+            assert!(test.expected == test.process::<Builder>())
+        }
+
+        it "Triple Mustache Integer Interpolation" {
+            let test = spec.get("Triple Mustache Integer Interpolation");
+            assert!(test.expected == test.process::<Builder>())
+        }
+
+        it "Ampersand Decimal Interpolation" {
+            let test = spec.get("Ampersand Decimal Interpolation");
+            assert!(test.expected == test.process::<Builder>())
         }
     }
-}
-
-mod mustache {
-    test_spec!("specs/mustache/specs/interpolation.yml" => no_interpolation);
 }

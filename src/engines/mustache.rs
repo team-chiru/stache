@@ -11,13 +11,6 @@ pub struct Builder {
 }
 
 impl Builder {
-    pub fn configure(json: Value) -> Self {
-        Builder {
-            data: json,
-            output: "".to_string()
-        }
-    }
-
     fn interpolate(&mut self, key: &String) -> Result<NextRule, ExecutionError> {
         let path = String::from("/") + &key.replace(".", "/");
 
@@ -88,7 +81,14 @@ impl Builder {
     }
 }
 
-impl TemplateEngine<String> for Builder {
+impl TemplateEngine<Value, String> for Builder {
+    fn configure(json: Value) -> Self {
+        Builder {
+            data: json,
+            output: "".to_string()
+        }
+    }
+
     fn execute(&mut self, rule: &Rule) -> Result<NextRule, ExecutionError> {
         match *rule {
             Rule::Symbolic(ref symbol, ref key) => {

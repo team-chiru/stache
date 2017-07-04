@@ -3,9 +3,10 @@ use error::ExecutionError;
 
 pub type NextRule = Option<Rule>;
 
-pub trait TemplateEngine<U> {
+pub trait TemplateEngine<I,O> {
+    fn configure(I) -> Self;
     fn execute(&mut self, &Rule) -> Result<NextRule, ExecutionError>;
-    fn output(&self) -> U;
+    fn output(&self) -> O;
 }
 
 struct Processor {
@@ -34,8 +35,8 @@ impl Iterator for Processor {
     }
 }
 
-pub fn process<T, U>(tmpl: Template, engine: &mut T) -> Result<U, ExecutionError>
-where T: TemplateEngine<U> {
+pub fn process<E, I, O>(tmpl: Template, engine: &mut E) -> Result<O, ExecutionError>
+where E: TemplateEngine<I, O> {
     let mut p = Processor::new(tmpl);
 
     while let Some(rule) = p.next() {
