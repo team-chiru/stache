@@ -1,13 +1,13 @@
 #[derive(Deserialize, Debug)]
-pub struct Spec<I,O> {
-    pub tests: Vec<Test<I,O>>
+pub struct Spec<Test> {
+    pub tests: Vec<Test>
 }
 
 #[derive(Clone, Deserialize, Debug)]
-pub struct Test<I,O> {
+pub struct Test<Input, Output> {
     pub name: String,
     pub desc: String,
-    pub data: I,
+    pub data: Input,
     pub template: String,
-    pub expected: O,
+    pub expected: Output,
 }

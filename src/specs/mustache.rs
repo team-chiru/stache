@@ -12,8 +12,8 @@ use engines::processor::{ TemplateEngine, Engine };
 
 use super::spec::{ Test, Spec };
 
-pub type MustacheSpec = Spec<Value, String>;
 pub type MustacheTest = Test<Value, String>;
+pub type MustacheSpec = Spec<MustacheTest>;
 
 impl MustacheSpec {
     pub fn from_path(path: &String) -> Self {
