@@ -15,6 +15,51 @@ use super::spec::{ Test, Spec };
 pub type MustacheTest = Test<Value, String>;
 pub type MustacheSpec = Spec<MustacheTest>;
 
+pub trait TestPool {
+    fn path(&mut self, path: &str);
+    fn name(&mut self, name: &str);
+    fn process<E>(&self) -> Option<String>
+    where E: TemplateEngine<Value, String> + Engine<Value, String>;
+}
+
+#[derive(Default)]
+pub struct MustachePool {
+    pub spec: Option<MustacheSpec>,
+    pub test: Option<MustacheTest>
+}
+
+impl TestPool for MustachePool {
+    fn path(&mut self, path: &str) {
+        let yaml = file::read(path).unwrap();
+
+        self.spec = match serde_yaml::from_str(&yaml) {
+            Ok(spec) => spec,
+            Err(err) => None
+        }
+    }
+
+    fn name(&mut self, name: &str) {
+        let mut test: Option<MustacheTest> = None;
+        if let Some(ref spec) = self.spec {
+            test = Some(spec.get(name));
+        }
+
+        self.test = test;
+    }
+
+    fn process<E>(&self) -> Option<String>
+    where E: TemplateEngine<Value, String> + Engine<Value, String> {
+        if let Some(ref test) = self.test {
+            let mut engine: E = E::configure(test.data.clone());
+            let rules = compile(test.template.clone()).unwrap();
+
+            Some(engine.process(rules).unwrap())
+        } else {
+            None
+        }
+    }
+}
+
 impl MustacheSpec {
     pub fn from_path(path: &String) -> Self {
         let yaml = file::read(path).unwrap();
@@ -44,14 +89,7 @@ impl MustacheSpec {
     }
 }
 
-impl MustacheTest {
-    pub fn process<T>(&self) -> String
-    where T: TemplateEngine<Value, String> + Engine<Value, String> {
-        let mut engine: T = T::configure(self.data.clone());
-        let rules = compile(self.template.clone()).unwrap();
-        engine.process(rules).unwrap()
-    }
-}
+
 
 fn format_ident(name: &String) -> String {
     let idents: Vec<&str> = name.split('_').collect();

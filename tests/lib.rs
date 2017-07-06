@@ -2,9 +2,9 @@
 #![cfg_attr(test, plugin(stainless))]
 
 extern crate stachemu;
-use stachemu::file;
 
-use stachemu::specs::mustache::{ MustacheSpec, MustacheTest };
+#[warn(unused_imports)]
+use stachemu::specs::mustache::{ MustachePool, TestPool };
 use stachemu::engines::mustache::Builder;
 
 describe! mustache {
@@ -15,47 +15,68 @@ describe! mustache {
     describe! interpolation {
         before_each {
             let path = base + "interpolation.yml";
-            let spec = MustacheSpec::from_path(&path);
+            let mut pool = MustachePool::default();
+
+            pool.path(&path);
         }
 
-        it "No Interpolation" {
-            let test = spec.get("No Interpolation");
-            assert!(test.expected == test.process::<Builder>())
+        describe! simple {
+            it "no" { pool.name("No Interpolation"); }
+            it "basic" { pool.name("Basic Interpolation"); }
+            it "escaping" { pool.name("HTML Escaping"); }
+            it "triple" { pool.name("Triple Mustache"); }
+            it "ampersand" { pool.name("Ampersand"); }
         }
 
-        it "Basic Interpolation" {
-            let test = spec.get("Basic Interpolation");
-            assert!(test.expected == test.process::<Builder>())
+        describe! integer {
+            it "basic" { pool.name("Basic Integer Interpolation"); }
+            it "triple" { pool.name("Triple Mustache Integer Interpolation"); }
+            it "ampersand" { pool.name("Ampersand Integer Interpolation"); }
         }
 
-        it "HTML Escaping" {
-            let test = spec.get("HTML Escaping");
-            assert!(test.expected == test.process::<Builder>())
+        describe! decimal {
+            it "basic" { pool.name("Basic Decimal Interpolation"); }
+            it "triple" { pool.name("Triple Mustache Decimal Interpolation"); }
+            it "ampersand" { pool.name("Ampersand Decimal Interpolation"); }
         }
 
-        it "Triple Mustache" {
-            let test = spec.get("Triple Mustache");
-            assert!(test.expected == test.process::<Builder>())
+        describe! miss {
+            it "basic" { pool.name("Basic Context Miss Interpolation"); }
+            it "triple" { pool.name("Triple Mustache Context Miss Interpolation"); }
+            it "ampersand" { pool.name("Ampersand Context Miss Interpolation"); }
         }
 
-        it "Ampersand" {
-            let test = spec.get("Ampersand");
-            assert!(test.expected == test.process::<Builder>())
+        describe! dotted_names {
+            it "basic" { pool.name("Dotted Names - Basic Interpolation"); }
+            it "triple" { pool.name("Dotted Names - Triple Mustache Interpolation"); }
+            it "ampersand" { pool.name("Dotted Names - Ampersand Interpolation"); }
+            it "arbitrary depth" { pool.name("Dotted Names - Arbitrary Depth"); }
+            it "broken" { pool.name("Dotted Names - Broken Chains"); }
+            it "broken resolution" { pool.name("Dotted Names - Broken Chains Resolution"); }
+            it "initial resolution" { pool.name("Dotted Names - Initial Resolution"); }
+            it "precedence" { pool.name("Dotted Names - Context Precedence"); }
         }
 
-        it "Basic Integer Interpolation" {
-            let test = spec.get("Basic Integer Interpolation");
-            assert!(test.expected == test.process::<Builder>())
-        }
+         describe! whitespace_sensivity {
+             it "basic whitespace" { pool.name("Interpolation - Surrounding Whitespace"); }
+             it "triple whitespace" { pool.name("Triple Mustache - Surrounding Whitespace"); }
+             it "ampersand whitespace" { pool.name("Ampersand - Surrounding Whitespace"); }
+             it "basic standalone" { pool.name("Interpolation - Standalone"); }
+             it "triple standalone" { pool.name("Triple Mustache - Standalone"); }
+             it "ampersand standalone" { pool.name("Ampersand - Standalone"); }
+         }
 
-        it "Triple Mustache Integer Interpolation" {
-            let test = spec.get("Triple Mustache Integer Interpolation");
-            assert!(test.expected == test.process::<Builder>())
+        describe! whitespace_insensitivity {
+            it "basic" { pool.name("Interpolation With Padding"); }
+            it "triple" { pool.name("Triple Mustache With Padding"); }
+            it "ampersand" { pool.name("Ampersand With Padding"); }
         }
+    }
 
-        it "Ampersand Decimal Interpolation" {
-            let test = spec.get("Ampersand Decimal Interpolation");
-            assert!(test.expected == test.process::<Builder>())
-        }
+    after_each {
+        let result = pool.process::<Builder>().unwrap();
+        let expected = pool.test.unwrap().expected;
+
+        assert!(expected == result)
     }
 }
