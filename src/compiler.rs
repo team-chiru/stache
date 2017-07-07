@@ -60,11 +60,14 @@ impl Iterator for Compiler {
             new_input = Some(remain.to_string());
 
             // updates output rules
+            let symbol = capture["symbol"].to_string();
+            let key = capture["key"].trim().to_string();
+
             self.output.push(
-                Rule::Symbolic(
-                    capture["symbol"].to_string(),
-                    capture["key"].to_string()
-                )
+                match (&capture["symbol"], &capture["key"]) {
+                    (_, ".") => Rule::Noop(symbol),
+                    _ => Rule::Symbolic(symbol, key)
+                }
             );
         } else { // fills the default rule
             let (s, remain) = old_input.split_at(1);

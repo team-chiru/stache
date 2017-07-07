@@ -34,7 +34,7 @@ impl TestPool for MustachePool {
 
         self.spec = match serde_yaml::from_str(&yaml) {
             Ok(spec) => spec,
-            Err(err) => None
+            Err(_) => None
         }
     }
 
@@ -50,10 +50,10 @@ impl TestPool for MustachePool {
     fn process<E>(&self) -> Option<String>
     where E: TemplateEngine<Value, String> + Engine<Value, String> {
         if let Some(ref test) = self.test {
-            let mut engine: E = E::configure(test.data.clone());
+            let data = test.data.clone();
             let rules = compile(test.template.clone()).unwrap();
 
-            Some(engine.process(rules).unwrap())
+            Some(E::process(rules, data).unwrap())
         } else {
             None
         }
