@@ -1,3 +1,5 @@
+#![feature(slice_concat_ext)]
+
 extern crate regex;
 #[macro_use] extern crate serde_derive;
 
