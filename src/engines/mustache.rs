@@ -11,69 +11,67 @@ pub struct Builder {
     output: Vec<String>
 }
 
-impl Builder {
-    fn interpolate(&mut self, key: &String) -> MustacheCommand {
-        let mut data = Some(&self.data);
+fn interpolate(key: &String, json: &Value) -> MustacheCommand {
+    let mut data = Some(json);
 
-        if *key != String::default() {
-            let path = String::from("/") + &key.replace(".", "/");
-            data = data.unwrap().pointer(&path);
-        }
-
-        if let Some(value) = data {
-            use self::serde_json::Value::*;
-
-            let value = match *value {
-                Bool(b) => {
-                    Some(
-                        if b { "true".to_string() } else { "false".to_string() }
-                    )
-                },
-                String(ref s) => Some(s.clone()),
-                Number(ref n) => {
-                    if let Some(s) = n.as_i64() {
-                        Some(s.to_string())
-                    } else if let Some(s) = n.as_u64() {
-                        Some(s.to_string())
-                    } else if let Some(s) = n.as_f64() {
-                        Some(s.to_string())
-                    } else {
-                        None
-                    }
-                },
-                _ => None
-            };
-
-            if let Some(v) = value {
-                Command::Write(v)
-            } else {
-                unimplemented!()
-            }
-        } else {
-            Command::Write(String::default())
-        }
+    if *key != String::default() {
+        let path = String::from("/") + &key.replace(".", "/");
+        data = data.unwrap().pointer(&path);
     }
 
-    fn interpolate_section(&self, key: &String) -> MustacheCommand {
-        let mut data = Some(&self.data);
-        let close = Rule::Symbolic("/".to_string(), key.clone());
+    if let Some(value) = data {
+        use self::serde_json::Value::*;
 
-        if *key != String::default() {
-            let path = String::from("/") + &key.replace(".", "/");
-            data = data.unwrap().pointer(&path);
-        }
+        let value = match *value {
+            Bool(b) => {
+                Some(
+                    if b { "true".to_string() } else { "false".to_string() }
+                )
+            },
+            String(ref s) => Some(s.clone()),
+            Number(ref n) => {
+                if let Some(s) = n.as_i64() {
+                    Some(s.to_string())
+                } else if let Some(s) = n.as_u64() {
+                    Some(s.to_string())
+                } else if let Some(s) = n.as_f64() {
+                    Some(s.to_string())
+                } else {
+                    None
+                }
+            },
+            _ => None
+        };
 
-        if let Some(json) = data {
-            use self::serde_json::Value::*;
-
-            match json.clone() {
-                Bool(false) | Null => Command::Skip(close),
-                Array(values) => Command::SliceOff(close, values),
-                _ => Command::SliceOff(close, vec![json.clone()])
-            }
+        if let Some(v) = value {
+            Command::Write(v)
         } else {
-            Command::Skip(close)
+            unimplemented!()
         }
+    } else {
+        Command::Write(String::default())
+    }
+}
+
+fn interpolate_section(key: &String, json: &Value) -> MustacheCommand {
+    let mut data = Some(json);
+    let close = Rule::Symbolic("/".to_string(), key.clone());
+
+    if *key != String::default() {
+        let path = String::from("/") + &key.replace(".", "/");
+        data = data.unwrap().pointer(&path);
+    }
+
+    if let Some(json) = data {
+        use self::serde_json::Value::*;
+
+        match json.clone() {
+            Bool(false) | Null => Command::Skip(close),
+            Array(values) => Command::SliceOff(close, values),
+            _ => Command::SliceOff(close, vec![json.clone()])
+        }
+    } else {
+        Command::Skip(close)
     }
 }
 
@@ -98,13 +96,14 @@ impl TemplateEngine<Value, String> for Builder {
 
     fn execute(&mut self, p: &mut Processor, rule: &Rule) -> Result<String, ExecutionError> {
         use self::Rule::*;
+        let value = self.data.clone();
 
         // executes the rule symbol
         let command: Command<Value, String> = match *rule {
             Symbolic(ref symbol, ref key) => {
                 match symbol.as_ref() {
-                    "" => self.interpolate(key),
-                    "#" => self.interpolate_section(key),
+                    "" => interpolate(key, &value),
+                    "#" => interpolate_section(key, &value),
                     "^" => unimplemented!(),
                     "/" => Command::None,
                     ">" => unimplemented!(),
@@ -116,7 +115,7 @@ impl TemplateEngine<Value, String> for Builder {
                 match symbol.as_ref() {
                     "" => {
                         let value = self.data.clone();
-                        self.interpolate(&String::default())
+                        interpolate(&String::default(), &value)
                     },
                     "#" => {
                         let close = Rule::Noop("/".to_string());
@@ -169,4 +168,6 @@ impl TemplateEngine<Value, String> for Builder {
     }
 }
 
-impl Engine<Value, String> for Builder {}
+impl Engine<Value, String> for Builder {
+
+}
