@@ -133,6 +133,8 @@ describe! mustache {
         let result = pool.process::<Builder>().unwrap();
         let expected = pool.test.unwrap().expected;
 
+        println!("expected: \n{}", expected);
+        println!("result: \n{}", result);
         assert!(expected == result)
     }
 }
