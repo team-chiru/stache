@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 extern crate serde;
 extern crate serde_yaml;
 extern crate serde_json;
@@ -8,7 +6,7 @@ use self::serde_json::Value;
 
 use file;
 use compile;
-use engines::processor::{ TemplateEngine, Engine };
+use engines::processor::{ Engine };
 
 use super::spec::{ Test, Spec };
 
@@ -18,8 +16,7 @@ pub type MustacheSpec = Spec<MustacheTest>;
 pub trait TestPool {
     fn path(&mut self, path: &str);
     fn name(&mut self, name: &str);
-    fn process<E>(&self) -> Option<String>
-    where E: TemplateEngine<Value, String> + Engine<Value, String>;
+    fn process<E>(&self) -> Option<String> where E: Engine<Vec<Value>, String>;
 }
 
 #[derive(Default)]
@@ -47,13 +44,13 @@ impl TestPool for MustachePool {
         self.test = test;
     }
 
-    fn process<E>(&self) -> Option<String>
-    where E: TemplateEngine<Value, String> + Engine<Value, String> {
+    fn process<E>(&self) -> Option<String> where E: Engine<Vec<Value>, String> {
         if let Some(ref test) = self.test {
-            let data = test.data.clone();
+            let data = vec![test.data.clone()];
             let rules = compile(test.template.clone()).unwrap();
+            let engine = E::new(data.clone());
 
-            Some(E::process(rules, data).unwrap())
+            Some(engine.process(rules, data).unwrap())
         } else {
             None
         }

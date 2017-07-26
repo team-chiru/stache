@@ -3,20 +3,6 @@ extern crate serde_json;
 use rule::{ Rule, Template };
 use error::ExecutionError;
 
-use std::marker;
-
-pub type NextRule = Option<Rule>;
-
-pub trait TemplateEngine<Input, Output> {
-    fn configure(Input) -> Self;
-
-    fn execute(&mut self, &mut Processor, &Rule) -> Result<Output, ExecutionError> {
-        Ok(self.output())
-    }
-
-    fn output(&self) -> Output;
-}
-
 pub struct Processor {
     status: Option<ExecutionError>,
     template: Template,
@@ -24,10 +10,11 @@ pub struct Processor {
 }
 
 impl Processor {
-    fn new(tmpl: Template) -> Self {
+    pub fn new(tmpl: Template) -> Self {
         Processor {
             status: None,
             template: tmpl,
+
             current: 0
         }
     }
@@ -110,17 +97,7 @@ impl Iterator for Processor {
     }
 }
 
-pub trait Engine<Input, Output> where Self: TemplateEngine<Input, Output> + marker::Sized {
-    fn process(tmpl: Template, data: Input) -> Result<Output, ExecutionError> {
-        let mut engine = Self::configure(data);
-        let mut p = Processor::new(tmpl.clone());
-
-        while let Some(rule) = p.next() {
-            if let Err(err) = engine.execute(&mut p, &rule) {
-                return Err(err);
-            }
-        }
-
-        Ok(engine.output())
-    }
+pub trait Engine<Input, Output> {
+    fn new(data: Input) -> Self;
+    fn process(&self, tmpl: Template, data: Input) -> Result<Output, ExecutionError>;
 }
