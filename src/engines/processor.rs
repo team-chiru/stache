@@ -24,9 +24,9 @@ impl Processor {
     }
 
     pub fn find_rule(&mut self, next_rule: &Rule) -> Option<i32> {
-        let mut index: usize = 0;
         let mut nested_level = 1;
         let current = self.current as usize;
+        let mut index: usize = current;
 
         let old_rule = match self.template.get(current) {
             Some(rule) => rule,
