@@ -48,6 +48,8 @@ impl TestPool for MustachePool {
         if let Some(ref test) = self.test {
             let data = vec![test.data.clone()];
             let rules = compile(test.template.clone()).unwrap();
+            println!("{:?}", rules);
+
             let engine = E::new(data.clone());
 
             Some(engine.process(rules, data).unwrap())

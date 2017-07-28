@@ -3,7 +3,7 @@ use self::serde_json::Value;
 
 use engines::processor::{ Processor, Engine };
 use error::ExecutionError;
-use rule::{ Rule, Template };
+use rule::{ Symbol, Rule, Template };
 
 pub struct Builder {
     global: Value
@@ -29,9 +29,7 @@ impl Builder {
             },
             Import(_) => unimplemented!(),
             Write(value) => {
-                if value != "\n" {
-                    result.push_str(&value);
-                }
+                result.push_str(&value);
                 p.current += 1;
             },
             None => {
@@ -104,7 +102,7 @@ fn interpolate(key: &String, json: &Value) -> MustacheCommand {
 
 fn interpolate_section(key: &String, local: &Value, global: &Value) -> MustacheCommand {
     let mut data = None;
-    let close = Rule::Symbolic("/".to_string(), key.clone());
+    let close = Rule::Symbolic(Symbol::from("/"), key.clone());
     let path = String::from("/") + &key.replace(".", "/");
 
     if *key != String::default() {
@@ -136,12 +134,16 @@ fn interpolate_section(key: &String, local: &Value, global: &Value) -> MustacheC
     }
 }
 
+fn trail(value: &String) -> String {
+    value.clone()
+}
+
 fn decide(rule: &Rule, data: &Value, global: &Value) -> MustacheCommand {
     use self::Rule::*;
 
     match *rule {
         Symbolic(ref symbol, ref key) => {
-            match symbol.as_ref() {
+            match symbol.get() {
                 "" => interpolate(key, &data),
                 "#" => interpolate_section(key, &data, &global),
                 "^" => unimplemented!(),
@@ -169,7 +171,7 @@ fn decide(rule: &Rule, data: &Value, global: &Value) -> MustacheCommand {
             }
         },
         Default(ref value) => {
-            Command::Write(value.clone())
+            Command::Write(trail(value))
         }
     }
 }
@@ -211,7 +213,6 @@ impl Engine<Vec<Value>, String> for Builder {
                 output.push_str(&partial.clone());
                 break;
             }
-
         }
 
         Ok(output)
