@@ -25,6 +25,10 @@ impl Builder {
                             &self.process(section.clone(), vec![data]).unwrap()
                         );
                     }
+                } else {
+                    p.status = Some(
+                        ExecutionError::InvalidStatement(String::from("Incomplete template"))
+                    );
                 }
             },
             Import(_) => unimplemented!(),
@@ -121,9 +125,9 @@ fn interpolate_section(key: &String, local: &Value, global: &Value) -> MustacheC
         }
     }
 
+
     if let Some(json) = data {
         use self::serde_json::Value::*;
-
         match json.clone() {
             Bool(false) | Null => Command::Skip(close),
             Array(values) => Command::SliceOff(close, values),
@@ -205,6 +209,10 @@ impl Engine<Vec<Value>, String> for Builder {
             let mut partial = String::default();
 
             while let Some(rule) = processor.next() {
+                if let Some(error) = processor.status {
+                    return Err(error);
+                }
+
                 let cmd: Command<Value, String> = decide(&rule, &data, &global);
                 partial.push_str(&self.execute(&mut processor, cmd));
             }

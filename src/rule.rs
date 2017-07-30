@@ -9,7 +9,6 @@ impl<S> From<S> for Symbol where S: Into<String> {
     }
 }
 
-
 impl Symbol {
     pub fn is_instruction(&self) -> bool {
         if self.symbol == "#" ||

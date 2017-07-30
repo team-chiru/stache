@@ -124,6 +124,8 @@ impl Compiler {
             return None;
         }
 
+        // FIXME differentiate newline between a single-lined string and a multi-line string
+
         // processes the current rule
         let mut current = Rule::default();
         if let Some(rule) = self.compiled.pop() {

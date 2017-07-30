@@ -4,7 +4,7 @@ use rule::{ Rule, Template };
 use error::ExecutionError;
 
 pub struct Processor {
-    status: Option<ExecutionError>,
+    pub status: Option<ExecutionError>,
     template: Template,
     pub current: i32,
 }
@@ -24,52 +24,57 @@ impl Processor {
     }
 
     pub fn find_rule(&mut self, next_rule: &Rule) -> Option<i32> {
-        let mut nested_level = 1;
-        let current = self.current as usize;
-        let mut index: usize = current;
+        let mut nested_level = 0;
+        let mut found = self.current;
 
-        let old_rule = match self.template.get(current) {
+        let old_rule = match self.template.get(self.current as usize) {
             Some(rule) => rule,
             None => return None
         };
 
-        let mut current_rule = match self.template.get(current + 1) {
-            Some(rule) => rule,
-            None => return None
-        };
+        let start = (self.current + 1) as usize;
+        let end = self.template.len();
 
-        while current_rule != next_rule && nested_level != 0  {
-            if current_rule == next_rule {
-                nested_level -= 1;
-            } else if current_rule == old_rule {
-                nested_level += 1;
-            }
-
-            index += 1;
-            current_rule = match self.template.get(index) {
+        for i in start..end {
+            let current_rule = match self.template.get(i) {
                 Some(rule) => rule,
                 None => return None
             };
+
+            if current_rule == old_rule {
+                nested_level += 1;
+            }
+
+            if current_rule == next_rule && nested_level <= 0 {
+                found = i as i32;
+                break;
+            }
+
+            if current_rule == next_rule {
+                nested_level -= 1;
+            }
         }
 
-        Some(index as i32)
+        if found == self.current {
+            None
+        } else {
+            Some(found)
+        }
     }
 
     pub fn section_to(&mut self, next_rule: &Rule) -> Option<Vec<Rule>> {
         if let Some(index) = self.find_rule(&next_rule) {
             let current = self.current as usize;
+            let tmpl = self.template.clone();
             self.current = index;
             let index = index as usize;
 
-            let (_, new) = self.template.split_at(current + 1);
+            let (_, new) = tmpl.split_at(current + 1);
             let (section, _) = new.split_at(index - current - 1);
+
 
             Some(section.to_vec())
         } else {
-            self.status = Some(
-                ExecutionError::InvalidStatement(String::from("Incomplete template"))
-            );
-
             None
         }
     }
