@@ -58,7 +58,13 @@ fn merge(target: Value, sample: &Value) -> Value {
 
             Value::Object(map)
         },
-        _ => unimplemented!()
+        _ => {
+            if target == *sample {
+                target
+            } else {
+                unimplemented!()
+            }
+        }
     }
 }
 

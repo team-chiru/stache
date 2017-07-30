@@ -11,8 +11,8 @@ fn main() {
     let mut pool = MustachePool::default();
 
     pool.path(&path);
-    pool.name("Indented Inline Sections");
 
+    pool.name("Nested (Truthy)");
     let result = pool.process::<Builder>().unwrap();
     println!("result: \n{:?}", result);
 }

@@ -47,9 +47,9 @@ impl Default for Compiler {
 }
 
 impl Compiler {
-    pub fn new(input: String) -> Self{
+    pub fn new(input: &String) -> Self{
         let mut compiler = Compiler::default();
-        compiler.input = input;
+        compiler.input = input.clone();
 
         compiler
     }
@@ -147,10 +147,32 @@ impl Compiler {
         use self::Rule::*;
 
         match (prev, current.clone(), next) {
-            (Symbolic(symbol, ..), Default(mut out), _) => {
-                // instruction rules connot be followed by newlines
-                if out.starts_with("\n") && symbol.is_instruction() {
-                    out.remove(0);
+            (prec, Default(mut out), next) => {
+                if let Symbolic(symbol, ..) = prec {
+                    // instruction rules connot be followed by newlines
+                    if out.starts_with("\n") && symbol.is_instruction() {
+                        out.remove(0);
+                    }
+
+                }
+
+                if let Symbolic(symbol, ..) = next {
+                    // instruction rules connot be preceded by whitespaces
+                    if symbol.is_instruction() {
+                        let backup = out.clone();
+                        let clone = out.clone();
+                        let mut reversed = clone.chars().rev();
+
+                        while reversed.next() == Some(' ') {
+                            out.pop();
+                        }
+
+                        if out.pop() != Some('\n') {
+                            out = backup;
+                        } else {
+                            out.push('\n');
+                        }
+                    }
                 }
 
                 if out != String::default() {
@@ -165,7 +187,7 @@ impl Compiler {
 }
 
 pub fn compile(tmpl: String) -> Result<Vec<Rule>, CompilingError> {
-    let mut compiler = Compiler::new(tmpl);
+    let mut compiler = Compiler::new(&tmpl);
 
     // FIRST STEP: compiles input to template
     while let Some(status) = compiler.compiles() {
