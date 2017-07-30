@@ -1,4 +1,4 @@
-use super::rule::Rule;
+use super::rule::{ Symbol, Rule, Template };
 use super::error::CompilingError;
 use super::status::Status;
 
@@ -7,20 +7,20 @@ use regex::Regex;
 type CompilingStatus = Status<CompilingError>;
 
 impl CompilingStatus {
-    fn update(&mut self, s: &str) {
+    fn updates(&mut self, s: &str) {
         let lines: Vec<&str> = s.lines().collect();
         let lines_len: i32 = lines.len() as i32;
 
         if lines_len == 1 {
             if s == "\n" {
-                self.line_index += 1;
-                self.column_index = 0;
+                self.line += 1;
+                self.column = 0;
             } else {
-                self.column_index += lines[0].len() as i32;
+                self.column += lines[0].len() as i32;
             }
         } else if let Some(line) = lines.last() {
-            self.column_index += lines_len;
-            self.line_index = line.len() as i32;
+            self.column += lines_len;
+            self.line = line.len() as i32;
         }
     }
 }
@@ -28,16 +28,33 @@ impl CompilingStatus {
 struct Compiler {
     status: CompilingStatus,
     input: String,
-    output: Vec<Rule>
+    compiled: Template,
+    trailed: Template
 }
 
 // test: https://regex101.com/r/XJ6sWg/1
-static REGEX: &'static str = r"^\{\{(?P<symbol>[=^#/!?>&]?)(?P<key>[ \sa-zA-Z]+)\}\}";
+static REGEX: &'static str = r"^\{\{(?P<symbol>[=^#/!?>&]?)(?P<key>[ \sa-zA-Z.]+)\}\}";
 
-impl Iterator for Compiler {
-    type Item = CompilingStatus;
+impl Default for Compiler {
+    fn default() -> Self {
+        Compiler {
+            status: CompilingStatus::default(),
+            input: String::default(),
+            compiled: vec![],
+            trailed: vec![]
+        }
+    }
+}
 
-    fn next(&mut self) -> Option<CompilingStatus> {
+impl Compiler {
+    pub fn new(input: &String) -> Self{
+        let mut compiler = Compiler::default();
+        compiler.input = input.clone();
+
+        compiler
+    }
+
+    fn compiles(&mut self) -> Option<CompilingStatus> {
         if self.input.is_empty() {
             return None;
         }
@@ -54,30 +71,33 @@ impl Iterator for Compiler {
             let (s, remain) = old_input.split_at(len);
 
             // updates compiler status
-            self.status.update(s);
+            self.status.updates(s);
 
             // updates template input
             new_input = Some(remain.to_string());
 
             // updates output rules
-            self.output.push(
-                Rule::Symbolic(
-                    capture["symbol"].to_string(),
-                    capture["key"].to_string()
-                )
+            let symbol = capture["symbol"].to_string();
+            let key = capture["key"].trim().to_string();
+
+            self.compiled.push(
+                match (&capture["symbol"], &capture["key"]) {
+                    (_, ".") => Rule::Noop(symbol),
+                    _ => Rule::Symbolic(Symbol::from(symbol), key)
+                }
             );
         } else { // fills the default rule
             let (s, remain) = old_input.split_at(1);
             let mut new_rule: Option<Rule> = None;
 
             // updates compiler status
-            self.status.update(s);
+            self.status.updates(s);
 
             // updates template input
             new_input = Some(remain.to_string());
 
             // updates output rules
-            match self.output.last_mut() {
+            match self.compiled.last_mut() {
                 Some(&mut Rule::Default(ref mut value)) => {
                     value.push_str(s);
                 },
@@ -87,7 +107,7 @@ impl Iterator for Compiler {
             }
 
             if let Some(rule) = new_rule {
-                self.output.push(rule);
+                self.compiled.push(rule);
             }
         }
 
@@ -98,24 +118,94 @@ impl Iterator for Compiler {
 
         Some(self.status.clone())
     }
+
+    pub fn trails(&mut self) -> Option<CompilingStatus> {
+        if self.compiled.is_empty() {
+            return None;
+        }
+
+        // FIXME differentiate newline between a single-lined string and a multi-line string
+
+        // processes the current rule
+        let mut current = Rule::default();
+        if let Some(rule) = self.compiled.pop() {
+            current = rule;
+        }
+
+        // analyses the previous and the next rule
+        let mut next = Rule::default();
+        let mut prev = Rule::default();
+
+        if let Some(rule) = self.compiled.last() {
+            next = rule.clone();
+        }
+
+        if let Some(rule) = self.trailed.last() {
+            prev = rule.clone();
+        }
+
+        use self::Rule::*;
+
+        match (prev, current.clone(), next) {
+            (prec, Default(mut out), next) => {
+                if let Symbolic(symbol, ..) = prec {
+                    // instruction rules connot be followed by newlines
+                    if out.starts_with("\n") && symbol.is_instruction() {
+                        out.remove(0);
+                    }
+
+                }
+
+                if let Symbolic(symbol, ..) = next {
+                    // instruction rules connot be preceded by whitespaces
+                    if symbol.is_instruction() {
+                        let backup = out.clone();
+                        let clone = out.clone();
+                        let mut reversed = clone.chars().rev();
+
+                        while reversed.next() == Some(' ') {
+                            out.pop();
+                        }
+
+                        if out.pop() != Some('\n') {
+                            out = backup;
+                        } else {
+                            out.push('\n');
+                        }
+                    }
+                }
+
+                if out != String::default() {
+                    self.trailed.push(Default(out));
+                }
+            },
+            _ => self.trailed.push(current)
+        }
+
+        Some(self.status.clone())
+    }
 }
 
 pub fn compile(tmpl: String) -> Result<Vec<Rule>, CompilingError> {
-    let mut compiler = Compiler {
-        status: CompilingStatus {
-            error: None,
-            line_index: 0,
-            column_index: 0
-        },
-        input: tmpl,
-        output: vec!()
-    };
+    let mut compiler = Compiler::new(&tmpl);
 
-    while let Some(status) = compiler.next() {
+    // FIRST STEP: compiles input to template
+    while let Some(status) = compiler.compiles() {
         if let Some(error) = status.error {
             return Err(error);
         }
     }
 
-    Ok(compiler.output)
+    // resets status and prepares second step
+    compiler.status = CompilingStatus::default();
+    compiler.compiled.reverse();
+
+    // SECOND STEP: trails template to sanitized template
+    while let Some(status) = compiler.trails() {
+        if let Some(error) = status.error {
+            return Err(error);
+        }
+    }
+
+    Ok(compiler.trailed)
 }
