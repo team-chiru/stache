@@ -129,6 +129,54 @@ describe! mustache {
         }
     }
 
+    describe! inverted {
+        before_each {
+            let path = base + "inverted.yml";
+            let mut pool = MustachePool::default();
+
+            pool.path(&path);
+        }
+
+        describe! simple {
+            it "truthy" { pool.name("Truthy"); }
+            it "falsey" { pool.name("Falsey"); }
+            it "doubled" { pool.name("Doubled"); }
+            it "nested truthy" { pool.name("Nested (Truthy)"); }
+            it "nested falsey" { pool.name("Nested (Falsey)"); }
+        }
+
+        describe! list {
+            it "basic" { pool.name("List"); }
+            it "empty" { pool.name("Empty List"); }
+        }
+
+        describe! context {
+            it "basic" { pool.name("Context"); }
+            it "misses" { pool.name("Context Misses"); }
+        }
+
+        describe! dotted_names {
+            it "truthy" { pool.name("Dotted Names - Truthy"); }
+            it "falsey" { pool.name("Dotted Names - Falsey"); }
+            it "broken" { pool.name("Dotted Names - Broken Chains"); }
+        }
+
+        describe! whitespace_sensivity {
+            it "surrounding" { pool.name("Surrounding Whitespace"); }
+            // FIXME #4 it "internal" { pool.name("Internal Whitespace"); }
+            // FIXME #4 it "indented inline" { pool.name("Indented Inline Sections"); }
+            it "standalone" { pool.name("Standalone Lines"); }
+            it "intended standalone" { pool.name("Standalone Indented Lines"); }
+            // FIXME #4 it "line endings" { pool.name("Standalone Line Endings"); }
+            // FIXME #4 it "without previous line" { pool.name("Standalone Without Previous Line"); }
+            // FIXME #4 it "without newline" { pool.name("Standalone Without Newline"); }
+        }
+
+        describe! whitespace_insensitivity {
+            it "padding" { pool.name("Padding"); }
+        }
+    }
+
     after_each {
         let result = pool.process::<Builder>().unwrap();
         let expected = pool.test.unwrap().expected;

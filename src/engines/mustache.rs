@@ -110,30 +110,36 @@ fn interpolate(key: &String, json: &Value) -> MustacheCommand {
     }
 }
 
-fn interpolate_section(key: &String, local: &Value, global: &Value) -> MustacheCommand {
-    let mut data = None;
-    let close = Rule::Symbolic(Symbol::from("/"), key.clone());
+fn get_context(key: &String, local: &Value, global: &Value) -> Option<Value> {
     let path = String::from("/") + &key.replace(".", "/");
 
     if *key != String::default() {
         if let Some(resolved) = local.pointer(&path) {
-            data = Some(resolved.clone());
-        }
+            Some(resolved.clone())
+        } else {
+            /*
+            * if local context doesn't match, retry on merged global context
+            * @see Deeply Nested Contexts
+            */
 
-        /*
-         * if local context doesn't match, retry on merged global context
-         * @see Deeply Nested Contexts
-         */
-        if !data.is_some() {
             if let Some(resolved) = global.pointer(&path) {
-                data = Some(merge(resolved.clone(), local));
+                Some(merge(resolved.clone(), local))
+            } else {
+                None
             }
         }
+    } else {
+        None
     }
+}
 
+fn interpolate_section(key: &String, local: &Value, global: &Value) -> MustacheCommand {
+    let close = Rule::Symbolic(Symbol::from("/"), key.clone());
+    let context = get_context(key, local, global);
 
-    if let Some(json) = data {
+    if let Some(json) = context {
         use self::serde_json::Value::*;
+
         match json.clone() {
             Bool(false) | Null => Command::Skip(close),
             Array(values) => Command::SliceOff(close, values),
@@ -141,6 +147,30 @@ fn interpolate_section(key: &String, local: &Value, global: &Value) -> MustacheC
         }
     } else {
         Command::Skip(close)
+    }
+}
+
+fn interpolate_inverted(key: &String, local: &Value, global: &Value) -> MustacheCommand {
+    let close = Rule::Symbolic(Symbol::from("/"), key.clone());
+    let context = get_context(key, local, global);
+
+    if let Some(json) = context {
+        use self::serde_json::Value::*;
+
+        match json.clone() {
+            Bool(true) => Command::Skip(close),
+            Bool(false) | Null => Command::SliceOff(close, vec![global.clone()]),
+            Array(values) => {
+                if values.is_empty() {
+                    Command::SliceOff(close, vec![global.clone()])
+                } else {
+                    Command::Skip(close)
+                }
+            },
+            _ => Command::Skip(close)
+        }
+    } else {
+        Command::SliceOff(close, vec![global.clone()])
     }
 }
 
@@ -156,7 +186,7 @@ fn decide(rule: &Rule, data: &Value, global: &Value) -> MustacheCommand {
             match symbol.get() {
                 "" => interpolate(key, &data),
                 "#" => interpolate_section(key, &data, &global),
-                "^" => unimplemented!(),
+                "^" => interpolate_inverted(key, &data, &global),
                 "/" => Command::None,
                 ">" => unimplemented!(),
                 "!" => unimplemented!(),
