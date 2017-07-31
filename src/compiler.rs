@@ -33,7 +33,7 @@ struct Compiler {
 }
 
 // test: https://regex101.com/r/XJ6sWg/1
-static REGEX: &'static str = r"^\{\{(?P<symbol>[=^#/!?>&]?)(?P<key>[ \sa-zA-Z.]+)\}\}";
+static REGEX: &'static str = r"^\{\{(?P<symbol>[=^#/!?>&]?)(?P<key>[ \sa-zA-Z0-9!.\-='^#/!?>&]+)\}\}";
 
 impl Default for Compiler {
     fn default() -> Self {
@@ -150,7 +150,7 @@ impl Compiler {
             (prec, Default(mut out), next) => {
                 if let Symbolic(symbol, ..) = prec {
                     // instruction rules connot be followed by newlines
-                    if out.starts_with("\n") && symbol.is_instruction() {
+                    if out.starts_with("\n") && (symbol.is_instruction() || symbol.is_comment()) {
                         out.remove(0);
                     }
 
@@ -158,7 +158,7 @@ impl Compiler {
 
                 if let Symbolic(symbol, ..) = next {
                     // instruction rules connot be preceded by whitespaces
-                    if symbol.is_instruction() {
+                    if symbol.is_instruction() || symbol.is_comment() {
                         let backup = out.clone();
                         let clone = out.clone();
                         let mut reversed = clone.chars().rev();
