@@ -174,10 +174,6 @@ fn interpolate_inverted(key: &String, local: &Value, global: &Value) -> Mustache
     }
 }
 
-fn trail(value: &String) -> String {
-    value.clone()
-}
-
 fn decide(rule: &Rule, data: &Value, global: &Value) -> MustacheCommand {
     use self::Rule::*;
 
@@ -189,7 +185,7 @@ fn decide(rule: &Rule, data: &Value, global: &Value) -> MustacheCommand {
                 "^" => interpolate_inverted(key, &data, &global),
                 "/" => Command::None,
                 ">" => unimplemented!(),
-                "!" => unimplemented!(),
+                "!" => Command::None,
                 _ => unimplemented!()
             }
         },
@@ -211,7 +207,7 @@ fn decide(rule: &Rule, data: &Value, global: &Value) -> MustacheCommand {
             }
         },
         Default(ref value) => {
-            Command::Write(trail(value))
+            Command::Write(value.clone())
         }
     }
 }

@@ -20,6 +20,14 @@ impl Symbol {
         }
     }
 
+    pub fn is_comment(&self) -> bool {
+        if self.symbol == "!" {
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn get(&self) -> &str {
         self.symbol.as_ref()
     }
