@@ -10,13 +10,12 @@ use stachemu::engines::mustache::Builder;
 describe! mustache {
     before_each {
         let base = String::from("specs/mustache/specs/");
+        let mut pool = MustachePool::default();
     }
 
     describe! interpolation {
         before_each {
             let path = base + "interpolation.yml";
-            let mut pool = MustachePool::default();
-
             pool.path(&path);
         }
 
@@ -76,8 +75,6 @@ describe! mustache {
     describe! sections {
         before_each {
             let path = base + "sections.yml";
-            let mut pool = MustachePool::default();
-
             pool.path(&path);
         }
 
@@ -132,8 +129,6 @@ describe! mustache {
     describe! inverted {
         before_each {
             let path = base + "inverted.yml";
-            let mut pool = MustachePool::default();
-
             pool.path(&path);
         }
 
@@ -174,6 +169,29 @@ describe! mustache {
 
         describe! whitespace_insensitivity {
             it "padding" { pool.name("Padding"); }
+        }
+    }
+
+    describe! comments {
+        before_each {
+            let path = base + "comments.yml";
+            pool.path(&path);
+        }
+
+        describe! simple {
+            it "inline" { pool.name("Inline"); }
+            it "multiline" { pool.name("Multiline"); }
+        }
+
+        describe! whitespace_sensivity {
+            it "surrounding" { pool.name("Surrounding Whitespace"); }
+            it "standalone" { pool.name("Standalone"); }
+            it "intended standalone" { pool.name("Indented Standalone"); }
+            // FIXME #4 it "line endings" { pool.name("Standalone Line Endings"); }
+            // FIXME #4 it "without previous line" { pool.name("Standalone Without Previous Line"); }
+            // FIXME #4 it "without newline" { pool.name("Standalone Without Newline"); }
+            it "multiline standalone" { pool.name("Multiline Standalone"); }
+            // FIXME #4 it "indented inline" { pool.name("Indented Inline"); }
         }
     }
 
