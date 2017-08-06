@@ -7,6 +7,7 @@ pub use compiler::compile;
 pub mod engines;
 
 pub mod rule;
+pub mod command;
 pub mod error;
 pub mod status;
 pub mod file;

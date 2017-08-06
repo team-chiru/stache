@@ -5,7 +5,6 @@
 extern crate stachemu;
 
 use stachemu::specs::mustache::{ MustachePool, TestPool };
-use stachemu::engines::mustache::Builder;
 
 describe! mustache {
     before_each {
@@ -196,7 +195,7 @@ describe! mustache {
     }
 
     after_each {
-        let result = pool.process::<Builder>().unwrap();
+        let result = pool.process().unwrap();
         let expected = pool.test.unwrap().expected;
 
         println!("expected: \n{:?}", expected);

@@ -1,74 +1,11 @@
 extern crate serde_json;
 use self::serde_json::Value;
 
-use engines::processor::{ Processor, Engine };
 use error::ExecutionError;
 use rule::{ Symbol, Rule, Template };
+use command::{ Engine, Command };
 
-pub struct Builder {
-    global: Value
-}
-
-impl Builder {
-    fn execute(&self, p: &mut Processor, command: MustacheCommand) -> String {
-        use self::Command::*;
-        let mut result = String::default();
-
-        match command {
-            Skip(next_rule) => {
-                p.current = p.update_to(&next_rule).unwrap();
-            },
-            SliceOff(next_rule, slices) => {
-                if let Some(section) = p.section_to(&next_rule) {
-                    for data in slices {
-                        result.push_str(
-                            &self.process(section.clone(), vec![data]).unwrap()
-                        );
-                    }
-                } else {
-                    p.status = Some(
-                        ExecutionError::InvalidStatement(String::from("Incomplete template"))
-                    );
-                }
-            },
-            Import(_) => unimplemented!(),
-            Write(value) => {
-                result.push_str(&value);
-                p.current += 1;
-            },
-            None => {
-                p.current += 1;
-            }
-        }
-
-        result
-    }
-}
-
-fn merge(target: Value, sample: &Value) -> Value {
-    use self::serde_json::Value::*;
-
-    match (target.clone(), sample.clone()) {
-        (Object(map), Object(sample)) => {
-            let mut map = map.clone();
-
-            for (key, value) in sample {
-                map.insert(key, value);
-            }
-
-            Value::Object(map)
-        },
-        _ => {
-            if target == *sample {
-                target
-            } else {
-                unimplemented!()
-            }
-        }
-    }
-}
-
-fn interpolate(key: &String, json: &Value) -> MustacheCommand {
+fn interpolate(key: &String, json: &Value) -> Mustache {
     let mut data = Some(json);
 
     if *key != String::default() {
@@ -103,66 +40,44 @@ fn interpolate(key: &String, json: &Value) -> MustacheCommand {
         if let Some(v) = value {
             Command::Write(v)
         } else {
-            unimplemented!()
+            Command::None
         }
     } else {
-        Command::Write(String::default())
+        Command::None
     }
 }
 
-fn get_context(key: &String, local: &Value, global: &Value) -> Option<Value> {
+fn interpolate_section(key: &String, context: &Value) -> Mustache {
     let path = String::from("/") + &key.replace(".", "/");
+    let close = Rule::Symbolic(false, Symbol::from("/"), key.clone());
 
-    if *key != String::default() {
-        if let Some(resolved) = local.pointer(&path) {
-            Some(resolved.clone())
-        } else {
-            /*
-            * if local context doesn't match, retry on merged global context
-            * @see Deeply Nested Contexts
-            */
-
-            if let Some(resolved) = global.pointer(&path) {
-                Some(merge(resolved.clone(), local))
-            } else {
-                None
-            }
-        }
-    } else {
-        None
-    }
-}
-
-fn interpolate_section(key: &String, local: &Value, global: &Value) -> MustacheCommand {
-    let close = Rule::Symbolic(Symbol::from("/"), key.clone());
-    let context = get_context(key, local, global);
-
-    if let Some(json) = context {
+    if let Some(json) = context.pointer(&path) {
         use self::serde_json::Value::*;
 
         match json.clone() {
             Bool(false) | Null => Command::Skip(close),
-            Array(values) => Command::SliceOff(close, values),
-            _ => Command::SliceOff(close, vec![json.clone()])
+            Array(values) => Command::SliceOff(close, values, true),
+            _ => Command::SliceOff(close, vec![json.clone()], true)
         }
     } else {
         Command::Skip(close)
     }
 }
 
-fn interpolate_inverted(key: &String, local: &Value, global: &Value) -> MustacheCommand {
-    let close = Rule::Symbolic(Symbol::from("/"), key.clone());
-    let context = get_context(key, local, global);
+fn interpolate_inverted(key: &String, context: &Value) -> Mustache {
+    let path = String::from("/") + &key.replace(".", "/");
+    let default = vec![context.clone()];
+    let close = Rule::Symbolic(false, Symbol::from("/"), key.clone());
 
-    if let Some(json) = context {
+    if let Some(json) = context.pointer(&path) {
         use self::serde_json::Value::*;
 
         match json.clone() {
             Bool(true) => Command::Skip(close),
-            Bool(false) | Null => Command::SliceOff(close, vec![global.clone()]),
+            Bool(false) | Null => Command::SliceOff(close, default, false),
             Array(values) => {
                 if values.is_empty() {
-                    Command::SliceOff(close, vec![global.clone()])
+                    Command::SliceOff(close, default, true)
                 } else {
                     Command::Skip(close)
                 }
@@ -170,91 +85,92 @@ fn interpolate_inverted(key: &String, local: &Value, global: &Value) -> Mustache
             _ => Command::Skip(close)
         }
     } else {
-        Command::SliceOff(close, vec![global.clone()])
+        Command::SliceOff(close, default, false)
     }
 }
 
-fn decide(rule: &Rule, data: &Value, global: &Value) -> MustacheCommand {
-    use self::Rule::*;
+pub type Mustache = Command<Value, String>;
 
-    match *rule {
-        Symbolic(ref symbol, ref key) => {
-            match symbol.get() {
-                "" => interpolate(key, &data),
-                "#" => interpolate_section(key, &data, &global),
-                "^" => interpolate_inverted(key, &data, &global),
-                "/" => Command::None,
-                ">" => unimplemented!(),
-                "!" => Command::None,
-                _ => unimplemented!()
-            }
-        },
-        Noop(ref symbol) => {
-            match symbol.as_ref() {
-                "" => {
-                    interpolate(&String::default(), &data)
-                },
-                "#" => {
-                    let close = Rule::Noop("/".to_string());
+impl Engine<Value, String> for Mustache {
+    fn decide(rule: &Rule, context: &Value) -> Self {
+        use self::Rule::*;
 
-                    match data.clone() {
-                        Value::Array(values) => Command::SliceOff(close, values),
-                        _ => unimplemented!()
-                    }
-                },
-                "/" => Command::None,
-                _ => unimplemented!()
-            }
-        },
-        Default(ref value) => {
-            Command::Write(value.clone())
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Command<Input, Output> {
-    Skip(Rule),
-    SliceOff(Rule, Vec<Input>),
-    Import(Rule),
-    Write(Output),
-    None
-}
-
-type MustacheCommand = Command<Value, String>;
-
-impl Engine<Vec<Value>, String> for Builder {
-    fn new(data: Vec<Value>) -> Self {
-        if let Some(context) = data.get(0) {
-            Builder { global: context.clone() }
-        } else {
-            Builder { global: Value::Null }
-        }
-    }
-
-    fn process(&self, tmpl: Template, values: Vec<Value>) -> Result<String, ExecutionError> {
-        let mut output = String::default();
-        let global = self.global.clone();
-
-        for data in values {
-            let mut processor = Processor::new(tmpl.clone());
-            let mut partial = String::default();
-
-            while let Some(rule) = processor.next() {
-                if let Some(error) = processor.status {
-                    return Err(error);
+        match *rule {
+            Symbolic(false, ref symbol, ref key) => {
+                match symbol.get() {
+                    "" => interpolate(key, context),
+                    "#" => interpolate_section(key, context),
+                    "^" => interpolate_inverted(key, context),
+                    "/" => Command::None,
+                    ">" => unimplemented!(),
+                    "!" => Command::None,
+                    _ => unimplemented!()
                 }
+            },
+            Noop(false, ref symbol) => {
+                match symbol.as_ref() {
+                    "" => interpolate(&String::default(), context),
+                    "#" => {
+                        let close = Rule::Noop(false, "/".to_string());
 
-                let cmd: Command<Value, String> = decide(&rule, &data, &global);
-                partial.push_str(&self.execute(&mut processor, cmd));
-            }
+                        match context.clone() {
+                            Value::Array(values) => Command::SliceOff(close, values, true),
+                            _ => Command::None
+                        }
+                    },
+                    "/" => Command::None,
+                    _ => unimplemented!()
+                }
+            },
+            Default(false, ref value) => {
+                Command::Write(value.clone())
+            },
+            _ => Command::None
+        }
+    }
 
-            if partial != String::default() {
-                output.push_str(&partial.clone());
-                break;
+    fn execute(self, template: &mut Template, contexts: &Vec<Value>) -> Result<String, ExecutionError> {
+        use self::Command::*;
+
+        match self {
+            Skip(next_rule) => {
+                if template.walk(&next_rule).is_none() {
+                    Err(ExecutionError::InvalidStatement(
+                        String::from("Incomplete template")
+                    ))
+                } else {
+                    Ok(String::default())
+                }
+            },
+            SliceOff(next_rule, slices, is_global_needed) => {
+                if let Some(section) = template.split_until(&next_rule) {
+                    let mut result = String::default();
+
+                    for slice in slices {
+                        let mut contexts = contexts.clone();
+
+                        if is_global_needed {
+                            contexts.push(slice);
+                        }
+
+                        match Mustache::process_all(section.clone(), contexts) {
+                            Ok(value) => result.push_str(&value),
+                            Err(error) => return Err(error)
+                        }
+                    }
+
+                    Ok(result)
+                } else {
+                    Err(ExecutionError::InvalidStatement(
+                        String::from("Incomplete template")
+                    ))
+                }
+            },
+            Import(_) => unimplemented!(),
+            Write(value) => Ok(value),
+            None => {
+                Ok(String::default())
             }
         }
-
-        Ok(output)
     }
 }

@@ -6,9 +6,12 @@ use self::serde_json::Value;
 
 use file;
 use compile;
-use engines::processor::{ Engine };
+
+use rule::Template;
 
 use super::spec::{ Test, Spec };
+use command::Engine;
+use engines::Mustache;
 
 pub type MustacheTest = Test<Value, String>;
 pub type MustacheSpec = Spec<MustacheTest>;
@@ -16,7 +19,8 @@ pub type MustacheSpec = Spec<MustacheTest>;
 pub trait TestPool {
     fn path(&mut self, path: &str);
     fn name(&mut self, name: &str);
-    fn process<E>(&self) -> Option<String> where E: Engine<Vec<Value>, String>;
+    fn process(&self) -> Option<String>;
+    fn debug(&self) -> Option<(Template, Value)>;
 }
 
 #[derive(Default)]
@@ -44,13 +48,20 @@ impl TestPool for MustachePool {
         self.test = test;
     }
 
-    fn process<E>(&self) -> Option<String> where E: Engine<Vec<Value>, String> {
+    fn process(&self) -> Option<String> {
         if let Some(ref test) = self.test {
             let data = vec![test.data.clone()];
             let rules = compile(test.template.clone()).unwrap();
-            let engine = E::new(data.clone());
 
-            Some(engine.process(rules, data).unwrap())
+            Some(Mustache::process_all(rules, data).unwrap())
+        } else {
+            None
+        }
+    }
+
+    fn debug(&self) -> Option<(Template, Value)> {
+        if let Some(ref test) = self.test {
+            Some((compile(test.template.clone()).unwrap(), test.data.clone()))
         } else {
             None
         }

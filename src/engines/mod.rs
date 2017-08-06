@@ -1,2 +1,2 @@
-pub mod processor;
-pub mod mustache;
+mod mustache;
+pub type Mustache = mustache::Mustache;
