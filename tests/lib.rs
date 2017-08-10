@@ -194,6 +194,33 @@ describe! mustache {
         }
     }
 
+    describe! partial {
+        before_each {
+            let path = base + "partials.yml";
+            pool.path(&path);
+        }
+
+        describe! simple {
+            it "basic behaviour" { pool.name("Basic Behavior"); }
+            it "failed lookup" { pool.name("Failed Lookup"); }
+            it "context" { pool.name("Context"); }
+            it "recursion" { pool.name("Recursion"); }
+        }
+
+        describe! whitespace_sensivity {
+            it "surrounding whitespace" { pool.name("Surrounding Whitespace"); }
+            it "inline indentation" { pool.name("Inline Indentation"); }
+            it "line endings" { pool.name("Standalone Line Endings"); }
+            it "without previous line" { pool.name("Standalone Without Previous Line"); }
+            it "without newline" { pool.name("Standalone Without Newline"); }
+            it "standalone indentation" { pool.name("Standalone Indentation"); }
+        }
+
+        describe! whitespace_insensitivity {
+            it "padding whitespace" { pool.name("Padding Whitespace"); }
+        }
+    }
+
     after_each {
         let result = pool.process().unwrap();
         let expected = pool.test.unwrap().expected;
