@@ -53,7 +53,7 @@ impl TestPool for MustachePool {
             let data = vec![test.data.clone()];
             let rules = compile(test.template.clone()).unwrap();
 
-            Some(Mustache::process_all(rules, data).unwrap())
+            Some(Mustache::render(rules, data).unwrap())
         } else {
             None
         }

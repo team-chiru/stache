@@ -14,6 +14,6 @@ fn main() {
     pool.name("Implicit Iterator - Array");
 
     let (template, data) = pool.debug().unwrap();
-    let result = Mustache::process_all(template, vec![data]).unwrap();
+    let result = Mustache::render(template, vec![data]).unwrap();
     println!("{}", result);
 }

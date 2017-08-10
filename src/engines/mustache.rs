@@ -153,7 +153,7 @@ impl Engine<Value, String> for Mustache {
                             contexts.push(slice);
                         }
 
-                        match Mustache::process_all(section.clone(), contexts) {
+                        match Mustache::render(section.clone(), contexts) {
                             Ok(value) => result.push_str(&value),
                             Err(error) => return Err(error)
                         }
@@ -172,5 +172,35 @@ impl Engine<Value, String> for Mustache {
                 Ok(String::default())
             }
         }
+    }
+
+    fn render(tmpl: Template, contexts: Vec<Value>) -> Result<String, ExecutionError> {
+        let mut output = String::default();
+        let mut tmpl = tmpl.clone();
+
+        while let Some(rule) = tmpl.next() {
+            let mut context_stack = contexts.iter().rev();
+
+            while let Some(context) = context_stack.next() {
+                let cmd = Mustache::decide(&rule, &context);
+                let mut is_written = false;
+
+                match cmd.execute(&mut tmpl, &contexts) {
+                    Ok(value) => {
+                        if value != String::default() {
+                            output.push_str(&value);
+                            is_written = true;
+                        }
+                    },
+                    Err(error) => return Err(error)
+                }
+
+                if is_written || rule.is_dotted() {
+                    break;
+                }
+            }
+        }
+
+        Ok(output)
     }
 }
