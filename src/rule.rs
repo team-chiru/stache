@@ -13,7 +13,8 @@ impl Symbol {
     pub fn is_instruction(&self) -> bool {
         if self.symbol == "#" ||
             self.symbol == "/" ||
-            self.symbol == "^" {
+            self.symbol == "^" ||
+            self.symbol == ">" {
             true
         } else {
             false

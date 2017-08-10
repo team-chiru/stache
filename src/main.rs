@@ -7,13 +7,15 @@ extern crate serde_json;
 
 fn main() {
     let base = String::from("specs/mustache/specs/");
-    let path = base + "sections.yml";
+    let path = base + "partials.yml";
     let mut pool = MustachePool::default();
 
     pool.path(&path);
-    pool.name("Implicit Iterator - Array");
+    pool.name("Standalone Without Newline");
 
-    let (template, data) = pool.debug().unwrap();
-    let result = Mustache::render(template, vec![data]).unwrap();
-    println!("{}", result);
+    let (template, partials, data) = pool.debug().unwrap();
+    println!("{:?}", partials);
+
+    let result = Mustache::render(template, partials, vec![data]).unwrap();
+    println!("{:?}", result);
 }

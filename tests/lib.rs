@@ -209,11 +209,11 @@ describe! mustache {
 
         describe! whitespace_sensivity {
             it "surrounding whitespace" { pool.name("Surrounding Whitespace"); }
-            it "inline indentation" { pool.name("Inline Indentation"); }
+            // FIXME #4 it "inline indentation" { pool.name("Inline Indentation"); }
             it "line endings" { pool.name("Standalone Line Endings"); }
-            it "without previous line" { pool.name("Standalone Without Previous Line"); }
-            it "without newline" { pool.name("Standalone Without Newline"); }
-            it "standalone indentation" { pool.name("Standalone Indentation"); }
+            // FIXME #4 it "without previous line" { pool.name("Standalone Without Previous Line"); }
+            // FIXME #4 it "without newline" { pool.name("Standalone Without Newline"); }
+            // FIXME #5 it "standalone indentation" { pool.name("Standalone Indentation"); }
         }
 
         describe! whitespace_insensitivity {

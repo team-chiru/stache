@@ -3,9 +3,10 @@ extern crate serde_yaml;
 extern crate serde_json;
 
 use self::serde_json::Value;
+use std::collections::HashMap;
 
 use file;
-use compile;
+use compiler::{ compile, compile_partials };
 
 use rule::Template;
 
@@ -20,7 +21,7 @@ pub trait TestPool {
     fn path(&mut self, path: &str);
     fn name(&mut self, name: &str);
     fn process(&self) -> Option<String>;
-    fn debug(&self) -> Option<(Template, Value)>;
+    fn debug(&self) -> Option<(Template, HashMap<String, Template>, Value)>;
 }
 
 #[derive(Default)]
@@ -53,15 +54,27 @@ impl TestPool for MustachePool {
             let data = vec![test.data.clone()];
             let rules = compile(test.template.clone()).unwrap();
 
-            Some(Mustache::render(rules, data).unwrap())
+            let mut partials = HashMap::new();
+            if test.partials != Value::Null {
+                partials = compile_partials(test.partials.clone()).unwrap();
+            }
+
+            Some(Mustache::render(rules, partials, data).unwrap())
         } else {
             None
         }
     }
 
-    fn debug(&self) -> Option<(Template, Value)> {
+    fn debug(&self) -> Option<(Template, HashMap<String, Template>, Value)> {
         if let Some(ref test) = self.test {
-            Some((compile(test.template.clone()).unwrap(), test.data.clone()))
+            let template = compile(test.template.clone()).unwrap();
+
+            let mut partials = HashMap::new();
+            if test.partials != Value::Null {
+                partials = compile_partials(test.partials.clone()).unwrap();
+            }
+
+            Some((template, partials, test.data.clone()))
         } else {
             None
         }

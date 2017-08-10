@@ -1,6 +1,8 @@
 extern crate serde_json;
 use self::serde_json::Value;
 
+use std::collections::HashMap;
+
 use error::ExecutionError;
 use rule::{ Symbol, Rule, Template };
 use command::{ Engine, Command };
@@ -56,7 +58,13 @@ fn interpolate_section(key: &String, context: &Value) -> Mustache {
 
         match json.clone() {
             Bool(false) | Null => Command::Skip(close),
-            Array(values) => Command::SliceOff(close, values, true),
+            Array(values) => {
+                if values.is_empty() {
+                    Command::Skip(close)
+                } else {
+                    Command::SliceOff(close, values, true)
+                }
+            },
             _ => Command::SliceOff(close, vec![json.clone()], true)
         }
     } else {
@@ -102,7 +110,7 @@ impl Engine<Value, String> for Mustache {
                     "#" => interpolate_section(key, context),
                     "^" => interpolate_inverted(key, context),
                     "/" => Command::None,
-                    ">" => unimplemented!(),
+                    ">" => Command::Import(key.clone()),
                     "!" => Command::None,
                     _ => unimplemented!()
                 }
@@ -129,7 +137,7 @@ impl Engine<Value, String> for Mustache {
         }
     }
 
-    fn execute(self, template: &mut Template, contexts: &Vec<Value>) -> Result<String, ExecutionError> {
+    fn execute(self, template: &mut Template, partials: &HashMap<String, Template>, contexts: &Vec<Value>) -> Result<String, ExecutionError> {
         use self::Command::*;
 
         match self {
@@ -153,7 +161,7 @@ impl Engine<Value, String> for Mustache {
                             contexts.push(slice);
                         }
 
-                        match Mustache::render(section.clone(), contexts) {
+                        match Mustache::render(section.clone(), partials.clone(), contexts) {
                             Ok(value) => result.push_str(&value),
                             Err(error) => return Err(error)
                         }
@@ -166,7 +174,22 @@ impl Engine<Value, String> for Mustache {
                     ))
                 }
             },
-            Import(_) => unimplemented!(),
+            Import(key) => {
+                if let Some(template) = partials.get(&key) {
+                    let mut new_contexts = contexts.clone();
+
+                    if let Some(context) = contexts.last() {
+                        new_contexts = vec![context.clone()];
+                    }
+
+                    match Mustache::render(template.clone(), partials.clone(), new_contexts) {
+                        Ok(value) => Ok(value),
+                        Err(error) => Err(error)
+                    }
+                } else {
+                    Ok(String::default())
+                }
+            },
             Write(value) => Ok(value),
             None => {
                 Ok(String::default())
@@ -174,7 +197,7 @@ impl Engine<Value, String> for Mustache {
         }
     }
 
-    fn render(tmpl: Template, contexts: Vec<Value>) -> Result<String, ExecutionError> {
+    fn render(tmpl: Template, partials: HashMap<String, Template>, contexts: Vec<Value>) -> Result<String, ExecutionError> {
         let mut output = String::default();
         let mut tmpl = tmpl.clone();
 
@@ -185,7 +208,7 @@ impl Engine<Value, String> for Mustache {
                 let cmd = Mustache::decide(&rule, &context);
                 let mut is_written = false;
 
-                match cmd.execute(&mut tmpl, &contexts) {
+                match cmd.execute(&mut tmpl, &partials, &contexts) {
                     Ok(value) => {
                         if value != String::default() {
                             output.push_str(&value);

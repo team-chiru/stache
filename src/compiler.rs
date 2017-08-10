@@ -2,7 +2,9 @@ use super::rule::{ Symbol, Rule, Template };
 use super::error::CompilingError;
 use super::status::Status;
 
+use std::collections::HashMap;
 use regex::Regex;
+use serde_json::Value;
 
 type CompilingStatus = Status<CompilingError>;
 
@@ -150,10 +152,15 @@ impl Compiler {
             (prec, Default(false, mut out), next) => {
                 if let Symbolic(false, symbol, ..) = prec {
                     // instruction rules connot be followed by newlines
-                    if out.starts_with("\n") && (symbol.is_instruction() || symbol.is_comment()) {
-                        out.remove(0);
-                    }
+                    if symbol.is_instruction() || symbol.is_comment() {
+                        if out.starts_with("\r") {
+                            out.remove(0);
+                        }
 
+                        if out.starts_with("\n") {
+                            out.remove(0);
+                        }
+                    }
                 }
 
                 if let Symbolic(false, symbol, ..) = next {
@@ -208,4 +215,26 @@ pub fn compile(tmpl: String) -> Result<Template, CompilingError> {
     }
 
     Ok(Template::new(compiler.trailed))
+}
+
+pub fn compile_partials(partials: Value) -> Result<HashMap<String, Template>, CompilingError> {
+    if let Value::Object(map) = partials {
+        let mut hash = HashMap::new();
+
+        for (key, value) in map {
+            if let Value::String(s) = value {
+                hash.insert(key, compile(s).unwrap());
+            } else {
+                return Err(CompilingError::InvalidStatement(
+                    String::from("Cannot compile partials")
+                ));
+            }
+        }
+
+        Ok(hash)
+    } else {
+        Err(CompilingError::InvalidStatement(
+            String::from("Cannot compile partials")
+        ))
+    }
 }
