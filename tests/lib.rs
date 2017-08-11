@@ -6,12 +6,13 @@ extern crate serde_json;
 use self::serde_json::Value;
 
 extern crate stachemu;
-use stachemu::engines::Mustache;
+use stachemu::engines::{ Mustache, Stachemu };
 use stachemu::specs::pool::{ Pool };
 
 type MustachePool = Pool<Value, String>;
+type StachemuPool = Pool<String, Value>;
 
-describe! mustache {
+describe! mustache_tests {
     before_each {
         let base = String::from("specs/mustache/specs/");
         let mut pool = MustachePool::default();
@@ -233,5 +234,33 @@ describe! mustache {
         println!("expected: \n{:?}", expected);
         println!("result: \n{:?}", result);
         assert!(expected == result)
+    }
+}
+
+describe! stachemu_tests {
+    before_each {
+        let base = String::from("specs/stachemu/");
+        let mut pool = StachemuPool::default();
+    }
+
+    describe! interpolation {
+        before_each {
+            let path = base + "interpolation.yml";
+            pool.path(&path);
+        }
+
+        describe! simple {
+            it "no" { pool.name("No Interpolation"); }
+            it "basic" { pool.name("Basic Interpolation"); }
+        }
+
+        after_each {
+            let result = pool.process::<Stachemu>().unwrap();
+            let expected = pool.test.unwrap().expected;
+
+            println!("expected: \n{:?}", expected);
+            println!("result: \n{:?}", result);
+            assert!(expected == result)
+        }
     }
 }
