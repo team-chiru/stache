@@ -1,0 +1,14 @@
+overview: |
+    Interpolation tags are used to integrate dynamic content into the template.
+tests:
+  - name: No Interpolation
+    desc: As Mustache, if no command is given, it renders as-is.
+    data:
+    template: Hello from {Stachemu}!
+    expected: Hello from {Mustache}!
+
+  - name: Basic Interpolation
+    desc: Unadorned tags should interpolate content into a key-value object.
+    data: world!
+    template: {{hello}}
+    expected: { hello: "world!" }
