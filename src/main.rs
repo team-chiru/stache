@@ -1,9 +1,13 @@
+extern crate serde_json;
+use self::serde_json::Value;
+
 extern crate stachemu;
 use stachemu::engines::Mustache;
 use stachemu::command::Engine;
-use stachemu::specs::mustache::{ MustachePool, TestPool };
 
-extern crate serde_json;
+use stachemu::specs::pool::{ Pool };
+
+type MustachePool = Pool<Value, String>;
 
 fn main() {
     let base = String::from("specs/mustache/specs/");

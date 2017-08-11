@@ -2,9 +2,14 @@
 #![feature(plugin)]
 #![cfg_attr(test, plugin(stainless))]
 
-extern crate stachemu;
+extern crate serde_json;
+use self::serde_json::Value;
 
-use stachemu::specs::mustache::{ MustachePool, TestPool };
+extern crate stachemu;
+use stachemu::engines::Mustache;
+use stachemu::specs::pool::{ Pool };
+
+type MustachePool = Pool<Value, String>;
 
 describe! mustache {
     before_each {
@@ -222,7 +227,7 @@ describe! mustache {
     }
 
     after_each {
-        let result = pool.process().unwrap();
+        let result = pool.process::<Mustache>().unwrap();
         let expected = pool.test.unwrap().expected;
 
         println!("expected: \n{:?}", expected);
