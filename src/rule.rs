@@ -127,7 +127,7 @@ impl Template {
         }
     }
 
-    pub fn walk(&mut self, next: &Rule) -> Option<i32> {
+    pub fn walk_until(&mut self, next: &Rule) -> Option<i32> {
         if let Some(index) = self.find(next) {
             self.buffer = index;
             Some(index)
@@ -147,10 +147,7 @@ impl Template {
             let (_, new) = tmpl.split_at(now + 1);
             let (section, _) = new.split_at(index - now - 1);
 
-
-            Some(
-                Template::new(section.to_vec())
-            )
+            Some(Template::new(section.to_vec()))
         } else {
             None
         }

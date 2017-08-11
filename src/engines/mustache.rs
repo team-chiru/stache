@@ -142,7 +142,7 @@ impl Engine<Value, String> for Mustache {
 
         match self {
             Skip(next_rule) => {
-                if template.walk(&next_rule).is_none() {
+                if template.walk_until(&next_rule).is_none() {
                     Err(ExecutionError::InvalidStatement(
                         String::from("Incomplete template")
                     ))
