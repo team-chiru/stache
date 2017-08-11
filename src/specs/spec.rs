@@ -10,4 +10,7 @@ pub struct Test<Input, Output> {
     pub data: Input,
     pub template: String,
     pub expected: Output,
+
+    #[serde(default)]
+    pub partials: Input
 }

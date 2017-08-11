@@ -5,7 +5,6 @@
 extern crate stachemu;
 
 use stachemu::specs::mustache::{ MustachePool, TestPool };
-use stachemu::engines::mustache::Builder;
 
 describe! mustache {
     before_each {
@@ -195,8 +194,35 @@ describe! mustache {
         }
     }
 
+    describe! partial {
+        before_each {
+            let path = base + "partials.yml";
+            pool.path(&path);
+        }
+
+        describe! simple {
+            it "basic behaviour" { pool.name("Basic Behavior"); }
+            it "failed lookup" { pool.name("Failed Lookup"); }
+            it "context" { pool.name("Context"); }
+            it "recursion" { pool.name("Recursion"); }
+        }
+
+        describe! whitespace_sensivity {
+            it "surrounding whitespace" { pool.name("Surrounding Whitespace"); }
+            // FIXME #4 it "inline indentation" { pool.name("Inline Indentation"); }
+            it "line endings" { pool.name("Standalone Line Endings"); }
+            // FIXME #4 it "without previous line" { pool.name("Standalone Without Previous Line"); }
+            // FIXME #4 it "without newline" { pool.name("Standalone Without Newline"); }
+            // FIXME #5 it "standalone indentation" { pool.name("Standalone Indentation"); }
+        }
+
+        describe! whitespace_insensitivity {
+            it "padding whitespace" { pool.name("Padding Whitespace"); }
+        }
+    }
+
     after_each {
-        let result = pool.process::<Builder>().unwrap();
+        let result = pool.process().unwrap();
         let expected = pool.test.unwrap().expected;
 
         println!("expected: \n{:?}", expected);
