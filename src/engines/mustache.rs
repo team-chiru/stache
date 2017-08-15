@@ -62,10 +62,10 @@ fn interpolate_section(key: &String, context: &Value) -> Mustache {
                 if values.is_empty() {
                     Command::Skip(close)
                 } else {
-                    Command::SliceOff(close, values, true)
+                    Command::Extract(close, values, true)
                 }
             },
-            _ => Command::SliceOff(close, vec![json.clone()], true)
+            _ => Command::Extract(close, vec![json.clone()], true)
         }
     } else {
         Command::Skip(close)
@@ -82,10 +82,10 @@ fn interpolate_inverted(key: &String, context: &Value) -> Mustache {
 
         match json.clone() {
             Bool(true) => Command::Skip(close),
-            Bool(false) | Null => Command::SliceOff(close, default, false),
+            Bool(false) | Null => Command::Extract(close, default, false),
             Array(values) => {
                 if values.is_empty() {
-                    Command::SliceOff(close, default, true)
+                    Command::Extract(close, default, true)
                 } else {
                     Command::Skip(close)
                 }
@@ -93,14 +93,14 @@ fn interpolate_inverted(key: &String, context: &Value) -> Mustache {
             _ => Command::Skip(close)
         }
     } else {
-        Command::SliceOff(close, default, false)
+        Command::Extract(close, default, false)
     }
 }
 
 pub type Mustache = Command<Value, String>;
 
 impl Engine<Value, String> for Mustache {
-    fn decide(rule: &Rule, context: &Value) -> Self {
+    fn create(rule: &Rule, context: &Value) -> Self {
         use self::Rule::*;
 
         match *rule {
@@ -122,7 +122,7 @@ impl Engine<Value, String> for Mustache {
                         let close = Rule::Noop(false, "/".to_string());
 
                         match context.clone() {
-                            Value::Array(values) => Command::SliceOff(close, values, true),
+                            Value::Array(values) => Command::Extract(close, values, true),
                             _ => Command::None
                         }
                     },
@@ -150,7 +150,7 @@ impl Engine<Value, String> for Mustache {
                     Ok(String::default())
                 }
             },
-            SliceOff(next_rule, slices, is_global_needed) => {
+            Extract(next_rule, slices, is_global_needed) => {
                 if let Some(section) = template.split_until(&next_rule) {
                     let mut result = String::default();
 
@@ -205,7 +205,7 @@ impl Engine<Value, String> for Mustache {
             let mut context_stack = contexts.iter().rev();
 
             while let Some(context) = context_stack.next() {
-                let cmd = Mustache::decide(&rule, &context);
+                let cmd = Mustache::create(&rule, &context);
                 let mut is_written = false;
 
                 match cmd.execute(&mut tmpl, &partials, &contexts) {

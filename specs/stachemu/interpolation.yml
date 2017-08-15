@@ -7,6 +7,12 @@ tests:
     template: Hello from {Stachemu}!
     expected: { }
 
+  - name: No Matching
+    desc: If the data doesn't match with the template, it returns null
+    data: Hello!
+    template: Hi!
+    expected: null
+
   - name: Basic Interpolation
     desc: Unadorned tags should interpolate content into a key-value object.
     data: world!

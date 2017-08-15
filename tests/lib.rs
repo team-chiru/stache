@@ -12,6 +12,7 @@ use stachemu::specs::pool::{ Pool };
 type MustachePool = Pool<Value, String>;
 type StachemuPool = Pool<String, Value>;
 
+/*
 describe! mustache_tests {
     before_each {
         let base = String::from("specs/mustache/specs/");
@@ -236,7 +237,7 @@ describe! mustache_tests {
         assert!(expected == result)
     }
 }
-
+*/
 describe! stachemu_tests {
     before_each {
         let base = String::from("specs/stachemu/");
