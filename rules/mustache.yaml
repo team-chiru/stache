@@ -1,0 +1,19 @@
+assert:
+   symbol: '#'
+   description: It tests if the corresponding data key exists and it builds the nested sequence.
+
+copy:
+   symbol: ''
+
+notassert:
+   symbol: '^'
+   description: It tests the corresponding data key doesn't exist and it builds the nested sequence.
+
+close:
+   symbol: '/'
+
+import:
+   symbol: '>'
+
+comment:
+   symbol: '!'
