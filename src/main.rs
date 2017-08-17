@@ -16,7 +16,7 @@ fn main() {
     let mut pool = StachemuPool::default();
 
     pool.path(&path);
-    pool.name("Basic Interpolation");
+    pool.name("Dotted Names - Complex Interpolation");
 
     let (template, partials, data) = pool.debug().unwrap();
     let result = Stachemu::render(template, partials, vec![data]).unwrap();

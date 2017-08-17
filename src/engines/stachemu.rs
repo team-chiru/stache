@@ -75,6 +75,49 @@ fn reshape_interpolation(to_reshape: Value, template: &Template) -> Value {
     }
 }
 
+fn merge_into(into: &Value, key: &String, value: &Value) -> Value {
+    use std::slice::SliceConcatExt;
+
+    match *into {
+        Value::Object(ref map) => {
+            if key.contains(".") {
+                let mut keys: Vec<&str> = key.split(".").collect();
+                if let Some(first) = keys.clone().get(0) {
+                    let mut is_merged = false;
+
+                    for (old_key, mut old_value) in map {
+                        if old_key == first {
+                            keys.remove(0);
+                            merge_into(old_value, &keys.join("."), value);
+                            is_merged = true;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                //map.insert(key.clone(), value.clone());
+            }
+
+            unimplemented!()
+        },
+        Value::Null => {
+            if key.contains(".") {
+                let mut keys: Vec<&str> = key.split(".").collect();
+                let mut new_json = Value::Object(Map::new());
+
+                for key in keys {
+                    new_json = merge_into(&new_json, &String::from(key), value);
+                }
+            } else {
+
+            }
+
+            unimplemented!()
+        },
+        _ => unimplemented!()
+    }
+}
+
 impl Engine<String, Value> for Stachemu {
     fn create(rule: &Rule, context: &String) -> Self {
         use self::Rule::*;
@@ -133,7 +176,7 @@ impl Engine<String, Value> for Stachemu {
     }
 
     fn render(template: Template, partials: HashMap<String, Template>, contexts: Vec<String>) -> Result<Value, ExecutionError> {
-        let mut output = Map::new();
+        let mut output = Value::Null;
         let mut tmpl = template.clone();
 
         let mut context = match contexts.get(0) {
@@ -152,7 +195,7 @@ impl Engine<String, Value> for Stachemu {
                 Ok(value) => {
                     if let Value::Object(map) = value {
                         for (key, value) in map {
-                            output.insert(key.clone(), value.clone());
+                            merge_into(&mut output, &key, &value);
 
                             if let Value::String(eaten) = value.clone() {
                                 context.drain(..eaten.len());
@@ -171,6 +214,6 @@ impl Engine<String, Value> for Stachemu {
             }
         }
 
-        Ok(Value::Object(output))
+        Ok(output)
     }
 }
