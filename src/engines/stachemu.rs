@@ -5,11 +5,7 @@ use error::ExecutionError;
 use rule::{ Template, Rule };
 use command::{ Engine, Command };
 
-#[derive(Debug, Clone)]
-pub struct Stachemu {
-    own: Command<String, Value>,
-    buffer: i32
-}
+pub type Stachemu = Command<String, Value>;
 
 fn is_matching(template: &str, to_match: &str) -> bool {
     let mut value_to_match = template.chars();
@@ -45,6 +41,40 @@ fn interpolate(context: &String) -> Option<String> {
     }
 }
 
+fn reshape_interpolation(to_reshape: Value, template: &Template) -> Value {
+    let mut new_map = Map::new();
+    let next_index = template.now() + 1;
+
+    if let Value::Object(map) = to_reshape.clone() {
+        if map.len() != 1 {
+            return to_reshape;
+        }
+
+        if let Some(Rule::Default(false, next)) = template.get(next_index) {
+            for (key, value) in map {
+                if let Value::String(mut content) = value.clone() {
+                    for next_char in next.chars() {
+                        if let Some(last_match) = content.pop() {
+                            if last_match != next_char {
+                                content.push(last_match);
+                                break;
+                            }
+                        }
+                    }
+
+                    new_map.insert(key.clone(), Value::String(content));
+                }
+            }
+        }
+    }
+
+    if new_map.is_empty() {
+        to_reshape
+    } else {
+        Value::Object(new_map)
+    }
+}
+
 impl Engine<String, Value> for Stachemu {
     fn create(rule: &Rule, context: &String) -> Self {
         use self::Rule::*;
@@ -53,20 +83,13 @@ impl Engine<String, Value> for Stachemu {
             Symbolic(false, ref symbol, ref key) => {
                 match symbol.get() {
                     "" => {
-                        let mut new_context = context.clone();
-                        let mut buffer = context.len();
-                        let mut map = Map::new();
+                        let mut new_map = Map::new();
 
                         if let Some(value) = interpolate(context) {
-                            new_context.drain(..buffer).collect::<String>();
-                            buffer = value.len();
-                            map.insert(key.to_string(), Value::String(value));
+                            new_map.insert(key.to_string(), Value::String(value));
                         }
 
-                        Stachemu {
-                            own: Command::Write(Value::Object(map)),
-                            buffer: buffer as i32
-                        }
+                        Command::Write(Value::Object(new_map))
                     },
                     "#" => unimplemented!(),
                     "^" => unimplemented!(),
@@ -88,15 +111,9 @@ impl Engine<String, Value> for Stachemu {
                 let (to_match, new_context) = context.split_at(value.len());
 
                 if is_matching(value, to_match) {
-                    Stachemu {
-                        own: Command::Write(Value::Object(Map::new())),
-                        buffer: value.len() as i32
-                    }
+                    Command::Write(Value::Object(Map::new()))
                 } else {
-                    Stachemu {
-                        own: Command::Write(Value::Null),
-                        buffer: 0
-                    }
+                    Command::Write(Value::Null)
                 }
             },
             _ => unimplemented!()
@@ -106,11 +123,11 @@ impl Engine<String, Value> for Stachemu {
     fn execute(self, template: &mut Template, partial: &HashMap<String, Template>, contexts: &Vec<String>) -> Result<Value, ExecutionError> {
         use self::Command::*;
 
-        match self.own {
+        match self {
             Skip(next_rule) => unimplemented!(),
             Extract(next_rule, slices, is_global_needed) => unimplemented!(),
             Import(key) => unimplemented!(),
-            Write(value) => Ok(value),
+            Write(mut value) => Ok(reshape_interpolation(value, template)),
             None => unimplemented!()
         }
     }
@@ -119,29 +136,38 @@ impl Engine<String, Value> for Stachemu {
         let mut output = Map::new();
         let mut tmpl = template.clone();
 
+        let mut context = match contexts.get(0) {
+            Some(ctx) => ctx.clone(),
+            None => return Err(
+                ExecutionError::InvalidStatement(
+                    "Only one context can be rendered!".to_string()
+                )
+            )
+        };
+
         while let Some(rule) = tmpl.next() {
-            let mut context_stack = contexts.iter().rev();
+            let engine = Stachemu::create(&rule, &context);
 
-            while let Some(context) = context_stack.next() {
-                let cmd = Stachemu::create(&rule, &context);
-                let mut is_written = false;
+            match engine.execute(&mut tmpl, &partials, &contexts) {
+                Ok(value) => {
+                    if let Value::Object(map) = value {
+                        for (key, value) in map {
+                            output.insert(key.clone(), value.clone());
 
-                match cmd.execute(&mut tmpl, &partials, &contexts) {
-                    Ok(value) => {
-                        if let Value::Object(map) = value {
-                            for (key, value) in map {
-                                output.insert(key, value);
+                            if let Value::String(eaten) = value.clone() {
+                                context.drain(..eaten.len());
                             }
-
-                            is_written = true;
                         }
-                    },
-                    Err(error) => return Err(error)
-                }
 
-                if is_written {
-                    break;
-                }
+                        if let Rule::Default(false, eaten) = rule.clone() {
+                            context.drain(..eaten.len());
+                        }
+
+                    } else if value == Value::Null {
+                        return Ok(value)
+                    }
+                },
+                Err(error) => return Err(error)
             }
         }
 

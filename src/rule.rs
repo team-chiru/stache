@@ -88,6 +88,8 @@ impl Template {
         self.rules.get(index as usize).map(|r| r.clone())
     }
 
+    pub fn now(&self) -> i32 { self.now }
+
     pub fn find(&mut self, next: &Rule) -> Option<i32> {
         let mut nested_level = 0;
         let mut found = self.now;

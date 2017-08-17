@@ -18,3 +18,23 @@ tests:
     data: world!
     template: "{{hello}}"
     expected: { hello: "world!" }
+
+  # Unclosed Unterpolations
+  - name: Unclosed Interpolation
+    desc: Interpolation is processed only on a full matching.
+    data: I say hello!
+    template: I say {{what}}!
+    expected: { what: "hello" }
+
+  - name: Still No Matching
+    desc: A failure on matching always returns null.
+    data: I say hello!
+    template: I {{how}} hi!
+    expected: null
+
+  # dotted names
+  - name: Dotted Names - Complex Interpolation
+    desc: Dotted names creates complex structures.
+    data: I say hello!
+    template: I {{method.how}} {{method.what}}!
+    expected: { method: { how: "say", what: "hello" } }

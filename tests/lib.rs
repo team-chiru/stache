@@ -252,7 +252,13 @@ describe! stachemu_tests {
 
         describe! simple {
             it "no" { pool.name("No Interpolation"); }
+            it "null" { pool.name("No Matching"); }
             it "basic" { pool.name("Basic Interpolation"); }
+        }
+
+        describe! unclosed {
+            it "basic" { pool.name("Unclosed Interpolation"); }
+            it "still null" { pool.name("Still No Matching"); }
         }
 
         after_each {
