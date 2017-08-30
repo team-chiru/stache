@@ -100,122 +100,101 @@ fn interpolate_inverted(key: &String, context: &Value) -> Mustache {
 pub type Mustache = Command<Value, String>;
 
 impl Engine<Value, String> for Mustache {
-    fn create(rule: &Rule, context: &Value) -> Self {
-        use self::Rule::*;
-
-        match *rule {
-            Symbolic(false, ref symbol, ref key) => {
-                match symbol.get() {
-                    "" => interpolate(key, context),
-                    "#" => interpolate_section(key, context),
-                    "^" => interpolate_inverted(key, context),
-                    "/" => Command::None,
-                    ">" => Command::Import(key.clone()),
-                    "!" => Command::None,
-                    _ => unimplemented!()
-                }
-            },
-            Noop(false, ref symbol) => {
-                match symbol.as_ref() {
-                    "" => interpolate(&String::default(), context),
-                    "#" => {
-                        let close = Rule::Noop(false, "/".to_string());
-
-                        match context.clone() {
-                            Value::Array(values) => Command::Extract(close, values, true),
-                            _ => Command::None
-                        }
-                    },
-                    "/" => Command::None,
-                    _ => unimplemented!()
-                }
-            },
-            Default(false, ref value) => {
-                Command::Write(value.clone())
-            },
-            _ => Command::None
-        }
-    }
-
-    fn execute(self, template: &mut Template, partials: &HashMap<String, Template>, contexts: &Vec<Value>) -> Result<String, ExecutionError> {
-        use self::Command::*;
-
-        match self {
-            Skip(next_rule) => {
-                if template.walk_until(&next_rule).is_none() {
-                    Err(ExecutionError::InvalidStatement(
-                        String::from("Incomplete template")
-                    ))
-                } else {
-                    Ok(String::default())
-                }
-            },
-            Extract(next_rule, slices, is_global_needed) => {
-                if let Some(section) = template.split_until(&next_rule) {
-                    let mut result = String::default();
-
-                    for slice in slices {
-                        let mut contexts = contexts.clone();
-
-                        if is_global_needed {
-                            contexts.push(slice);
-                        }
-
-                        match Mustache::render(section.clone(), partials.clone(), contexts) {
-                            Ok(value) => result.push_str(&value),
-                            Err(error) => return Err(error)
-                        }
-                    }
-
-                    Ok(result)
-                } else {
-                    Err(ExecutionError::InvalidStatement(
-                        String::from("Incomplete template")
-                    ))
-                }
-            },
-            Import(key) => {
-                if let Some(template) = partials.get(&key) {
-                    let mut new_contexts = contexts.clone();
-
-                    if let Some(context) = contexts.last() {
-                        new_contexts = vec![context.clone()];
-                    }
-
-                    match Mustache::render(template.clone(), partials.clone(), new_contexts) {
-                        Ok(value) => Ok(value),
-                        Err(error) => Err(error)
-                    }
-                } else {
-                    Ok(String::default())
-                }
-            },
-            Write(value) => Ok(value),
-            None => {
-                Ok(String::default())
-            }
-        }
-    }
-
-    fn render(tmpl: Template, partials: HashMap<String, Template>, contexts: Vec<Value>) -> Result<String, ExecutionError> {
+    fn render(template: Template, partials: HashMap<String, Template>, contexts: Vec<Value>) -> Result<String, ExecutionError> {
         let mut output = String::default();
-        let mut tmpl = tmpl.clone();
+        let mut template = template.clone();
 
-        while let Some(rule) = tmpl.next() {
+        while let Some(rule) = template.next() {
             let mut context_stack = contexts.iter().rev();
 
             while let Some(context) = context_stack.next() {
-                let cmd = Mustache::create(&rule, &context);
+                use self::Rule::*;
+                use self::Command::*;
+
                 let mut is_written = false;
 
-                match cmd.execute(&mut tmpl, &partials, &contexts) {
-                    Ok(value) => {
-                        if value != String::default() {
-                            output.push_str(&value);
-                            is_written = true;
+                let cmd = match rule {
+                    Symbolic(false, ref symbol, ref key) => {
+                        match symbol.get() {
+                            "" => interpolate(key, context),
+                            "#" => interpolate_section(key, context),
+                            "^" => interpolate_inverted(key, context),
+                            "/" => Command::None,
+                            ">" => Command::Import(key.clone()),
+                            "!" => Command::None,
+                            _ => unimplemented!()
                         }
                     },
-                    Err(error) => return Err(error)
+                    Noop(false, ref symbol) => {
+                        match symbol.as_ref() {
+                            "" => interpolate(&String::default(), context),
+                            "#" => {
+                                let close = Rule::Noop(false, "/".to_string());
+
+                                match context.clone() {
+                                    Value::Array(values) => Command::Extract(close, values, true),
+                                    _ => Command::None
+                                }
+                            },
+                            "/" => Command::None,
+                            _ => unimplemented!()
+                        }
+                    },
+                    Default(false, ref value) => {
+                        Command::Write(value.clone())
+                    },
+                    _ => Command::None
+                };
+
+                match cmd {
+                    Skip(next_rule) => {
+                        if template.walk_until(&next_rule).is_none() {
+                            return Err(ExecutionError::InvalidStatement(String::from("Incomplete template")));
+                        }
+                    },
+                    Extract(next_rule, slices, is_global_needed) => {
+                        if let Some(section) = template.split_until(&next_rule) {
+                            for slice in slices {
+                                let mut contexts = contexts.clone();
+
+                                if is_global_needed {
+                                    contexts.push(slice);
+                                }
+
+                                match Mustache::render(section.clone(), partials.clone(), contexts) {
+                                    Ok(value) => {
+                                        output.push_str(&value);
+                                        is_written = true;
+                                    },
+                                    Err(error) => return Err(error)
+                                }
+                            }
+                        } else {
+                            return Err(ExecutionError::InvalidStatement(String::from("Incomplete template")));
+                        }
+                    },
+                    Import(key) => {
+                        if let Some(template) = partials.get(&key) {
+                            let mut new_contexts = contexts.clone();
+
+                            if let Some(context) = contexts.last() {
+                                new_contexts = vec![context.clone()];
+                            }
+
+                            match Mustache::render(template.clone(), partials.clone(), new_contexts) {
+                                Ok(value) => {
+                                    output.push_str(&value);
+                                    is_written = true;
+                                },
+                                Err(error) => return Err(error)
+                            }
+                        }
+                    },
+                    Write(value) => {
+                        output.push_str(&value);
+                        is_written = true;
+                    },
+                    None => {}
                 }
 
                 if is_written || rule.is_dotted() {

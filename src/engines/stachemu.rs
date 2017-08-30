@@ -119,62 +119,6 @@ fn merge_into(into: &Value, key: &String, value: &Value) -> Value {
 }
 
 impl Engine<String, Value> for Stachemu {
-    fn create(rule: &Rule, context: &String) -> Self {
-        use self::Rule::*;
-
-        match *rule {
-            Symbolic(false, ref symbol, ref key) => {
-                match symbol.get() {
-                    "" => {
-                        let mut new_map = Map::new();
-
-                        if let Some(value) = interpolate(context) {
-                            new_map.insert(key.to_string(), Value::String(value));
-                        }
-
-                        Command::Write(Value::Object(new_map))
-                    },
-                    "#" => unimplemented!(),
-                    "^" => unimplemented!(),
-                    "/" => unimplemented!(),
-                    ">" => unimplemented!(),
-                    "!" => unimplemented!(),
-                    _ => unimplemented!()
-                }
-            },
-            Noop(false, ref symbol) => {
-                match symbol.as_ref() {
-                    "" => unimplemented!(),
-                    "#" => unimplemented!(),
-                    "/" => unimplemented!(),
-                    _ => unimplemented!()
-                }
-            },
-            Default(false, ref value) => {
-                let (to_match, new_context) = context.split_at(value.len());
-
-                if is_matching(value, to_match) {
-                    Command::Write(Value::Object(Map::new()))
-                } else {
-                    Command::Write(Value::Null)
-                }
-            },
-            _ => unimplemented!()
-        }
-    }
-
-    fn execute(self, template: &mut Template, partial: &HashMap<String, Template>, contexts: &Vec<String>) -> Result<Value, ExecutionError> {
-        use self::Command::*;
-
-        match self {
-            Skip(next_rule) => unimplemented!(),
-            Extract(next_rule, slices, is_global_needed) => unimplemented!(),
-            Import(key) => unimplemented!(),
-            Write(mut value) => Ok(reshape_interpolation(value, template)),
-            None => unimplemented!()
-        }
-    }
-
     fn render(template: Template, partials: HashMap<String, Template>, contexts: Vec<String>) -> Result<Value, ExecutionError> {
         let mut output = Value::Null;
         let mut tmpl = template.clone();
@@ -189,11 +133,57 @@ impl Engine<String, Value> for Stachemu {
         };
 
         while let Some(rule) = tmpl.next() {
-            let engine = Stachemu::create(&rule, &context);
+            use self::Rule::*;
+            use self::Command::*;
 
-            match engine.execute(&mut tmpl, &partials, &contexts) {
-                Ok(value) => {
-                    if let Value::Object(map) = value {
+            let engine: Stachemu = match rule {
+                Symbolic(false, ref symbol, ref key) => {
+                    match symbol.get() {
+                        "" => {
+                            let mut new_map = Map::new();
+
+                            if let Some(value) = interpolate(&context) {
+                                new_map.insert(key.to_string(), Value::String(value));
+                            }
+
+                            Write(Value::Object(new_map))
+                        },
+                        "#" => unimplemented!(),
+                        "^" => unimplemented!(),
+                        "/" => unimplemented!(),
+                        ">" => unimplemented!(),
+                        "!" => unimplemented!(),
+                        _ => unimplemented!()
+                    }
+                },
+                Noop(false, ref symbol) => {
+                    match symbol.as_ref() {
+                        "" => unimplemented!(),
+                        "#" => unimplemented!(),
+                        "/" => unimplemented!(),
+                        _ => unimplemented!()
+                    }
+                },
+                Default(false, ref value) => {
+                    let (to_match, new_context) = context.split_at(value.len());
+
+                    if is_matching(value, to_match) {
+                        Command::Write(Value::Object(Map::new()))
+                    } else {
+                        Command::Write(Value::Null)
+                    }
+                },
+                _ => unimplemented!()
+            };
+
+            match engine {
+                Skip(next_rule) => unimplemented!(),
+                Extract(next_rule, slices, is_global_needed) => unimplemented!(),
+                Import(key) => unimplemented!(),
+                Write(mut value) => {
+                    let out = reshape_interpolation(value, &template);
+
+                    if let Value::Object(map) = out {
                         for (key, value) in map {
                             merge_into(&mut output, &key, &value);
 
@@ -206,11 +196,11 @@ impl Engine<String, Value> for Stachemu {
                             context.drain(..eaten.len());
                         }
 
-                    } else if value == Value::Null {
-                        return Ok(value)
+                    } else if out == Value::Null {
+                        return Ok(out);
                     }
                 },
-                Err(error) => return Err(error)
+                None => unimplemented!()
             }
         }
 
