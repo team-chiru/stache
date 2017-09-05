@@ -1,17 +1,22 @@
 #![feature(slice_concat_ext)]
 
 extern crate regex;
+
+#[macro_use] extern crate lazy_static;
+
 #[macro_use] extern crate serde_derive;
 extern crate serde_json;
 
-mod compiler;
-pub use compiler::compile;
+pub mod expr;
 
-pub mod engines;
+pub mod compiling;
+pub use compiling::compile;
+
+pub mod execution;
+
+pub mod implementations;
 
 pub mod rule;
-pub mod command;
-pub mod error;
 pub mod status;
 pub mod file;
 pub mod specs;

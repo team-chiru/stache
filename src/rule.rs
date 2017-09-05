@@ -1,66 +1,47 @@
-#[derive(PartialEq, Debug, Clone)]
-pub struct Symbol {
-    symbol: String
-}
-
-impl<S> From<S> for Symbol where S: Into<String> {
-    fn from(s: S) -> Self {
-        Symbol { symbol: s.into() }
-    }
-}
-
-impl Symbol {
-    pub fn is_instruction(&self) -> bool {
-        if self.symbol == "#" ||
-            self.symbol == "/" ||
-            self.symbol == "^" ||
-            self.symbol == ">" {
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn is_comment(&self) -> bool {
-        if self.symbol == "!" {
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn get(&self) -> &str {
-        self.symbol.as_ref()
-    }
-}
+use expr;
 
 #[derive(PartialEq, Debug, Clone)]
-pub enum Rule {
-    Noop(bool, String),
-    Symbolic(bool, Symbol, String),
-    Default(bool, String)
+pub enum DefaultRule<'r> {
+    Iterator(expr::Delimiter<'r>, expr::Symbol<'r>),
+    Symbolic(expr::Delimiter<'r>, expr::Symbol<'r>, String),
+    Default(String),
+    None
 }
 
-impl Default for Rule {
+impl<'r> Default for DefaultRule<'r> {
     fn default() -> Self {
-        Rule::Default(false, String::default())
+        DefaultRule::Default(String::default())
     }
 }
 
-impl Rule {
-    pub fn is_written(&self) -> bool {
-        use self::Rule::*;
+pub trait Rule<'r> where Self: From<DefaultRule<'r>> + Into<DefaultRule<'r>> + Clone {
+    fn is_comment(&self) -> bool {
+        let default: DefaultRule = self.clone().into();
 
-        match *self {
-            Noop(true, ..) | Symbolic(true, ..) | Default(true, ..) => {
-                true
-            },
-            _ => false
+        if let DefaultRule::Symbolic(_, "!", _) = default {
+            true
+        } else {
+            false
         }
     }
 
-    pub fn is_dotted(&self) -> bool {
-        if let Rule::Symbolic(_, _, ref key) = *self {
+    fn is_instruction(&self) -> bool {
+        let default: DefaultRule = self.clone().into();
+
+        if let DefaultRule::Symbolic(_, symbol, _) = default {
+            match symbol {
+                "#" | "/" | "^" | ">" => true,
+                _ => false
+            }
+        } else {
+            false
+        }
+    }
+
+    fn is_dotted(&self) -> bool {
+        let default: DefaultRule = self.clone().into();
+
+        if let DefaultRule::Symbolic(_, _, ref key) = default {
             key.contains(".")
         } else {
             false
@@ -69,14 +50,14 @@ impl Rule {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct Template {
-    rules: Vec<Rule>,
+pub struct Template<R> {
+    rules: Vec<R>,
     buffer: i32,
     now: i32
 }
 
-impl Template {
-    pub fn new(rules: Vec<Rule>) -> Self {
+impl<R> Template<R> where R: Clone + PartialEq {
+    pub fn new(rules: Vec<R>) -> Self {
         Template {
             rules: rules,
             buffer: 0,
@@ -84,13 +65,13 @@ impl Template {
         }
     }
 
-    pub fn get(&self, index: i32) -> Option<Rule> {
+    pub fn get(&self, index: i32) -> Option<R> {
         self.rules.get(index as usize).map(|r| r.clone())
     }
 
     pub fn now(&self) -> i32 { self.now }
 
-    pub fn find(&mut self, next: &Rule) -> Option<i32> {
+    pub fn find(&mut self, next: &R) -> Option<i32> {
         let mut nested_level = 0;
         let mut found = self.now;
 
@@ -129,7 +110,7 @@ impl Template {
         }
     }
 
-    pub fn walk_until(&mut self, next: &Rule) -> Option<i32> {
+    pub fn walk_until(&mut self, next: &R) -> Option<i32> {
         if let Some(index) = self.find(next) {
             self.buffer = index;
             Some(index)
@@ -138,7 +119,7 @@ impl Template {
         }
     }
 
-    pub fn split_until(&mut self, next: &Rule) -> Option<Template> {
+    pub fn split_until(&mut self, next: &R) -> Option<Template<R>> {
         if let Some(index) = self.find(next) {
             let now = self.now as usize;
             let tmpl = self.rules.clone();
@@ -156,10 +137,10 @@ impl Template {
     }
 }
 
-impl Iterator for Template {
-    type Item = Rule;
+impl<R> Iterator for Template<R> where R: Clone + PartialEq {
+    type Item = R;
 
-    fn next(&mut self) -> Option<Rule> {
+    fn next(&mut self) -> Option<R> {
         if self.buffer != 0 {
             self.now = self.buffer;
             self.buffer = 0;

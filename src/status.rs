@@ -14,3 +14,9 @@ impl<T> Default for Status<T> {
         }
     }
 }
+
+impl<T> Status<T> {
+    pub fn throw(&self, error: T) {
+        self.error = Some(error);
+    }
+}

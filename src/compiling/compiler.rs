@@ -1,10 +1,12 @@
-use super::rule::{ Symbol, Rule, Template };
 use super::error::CompilingError;
-use super::status::Status;
+use status::Status;
+use rule::DefaultRule;
 
 use std::collections::HashMap;
-use regex::Regex;
+use regex;
 use serde_json::Value;
+
+use std::marker::Sized;
 
 type CompilingStatus = Status<CompilingError>;
 
@@ -27,48 +29,34 @@ impl CompilingStatus {
     }
 }
 
-struct Compiler {
-    status: CompilingStatus,
-    input: String,
-    compiled: Vec<Rule>,
-    trailed: Vec<Rule>
+struct Compiler<'r, R> where R: Sized {
+    pub status: CompilingStatus,
+    compiled: Vec<DefaultRule<'r>>,
+    trailed: Vec<R>
 }
 
-// test: https://regex101.com/r/XJ6sWg/1
-static REGEX: &'static str = r"^\{\{(?P<symbol>[=^#/!?>&]?)(?P<key>[ \sa-zA-Z0-9!.\-='^#/!?>&]+)\}\}";
-
-impl Default for Compiler {
+impl<'r, R> Default for Compiler<'r, R> where R: Sized {
     fn default() -> Self {
         Compiler {
             status: CompilingStatus::default(),
-            input: String::default(),
             compiled: vec![],
             trailed: vec![]
         }
     }
 }
 
-impl Compiler {
-    pub fn new(input: &String) -> Self{
-        let mut compiler = Compiler::default();
-        compiler.input = input.clone();
 
-        compiler
+impl<'r, R> Compiler<'r, R> where R: Sized + RuleMatching {
+    pub fn new(input: &'r str) -> Self {
+        Compiler::default()
     }
 
-    fn compiles(&mut self) -> Option<CompilingStatus> {
-        if self.input.is_empty() {
-            return None;
-        }
-
-        // TODO add regex builder logic from rule configuration
-        let re = Regex::new(REGEX).unwrap();
-
+    fn compiles(&mut self, input: &'r String, matcher: &'r Matcher) -> Result<Option<String>, CompilingError> {
         let new_input: Option<String>;
-        let old_input = self.input.clone();
+        let old_input = input.clone();
 
         // matches some specific rules
-        if let Some(capture) = re.captures(&self.input) {
+        if let Some(capture) = matcher.captures(input) {
             let len = capture[0].len();
             let (s, remain) = old_input.split_at(len);
 
@@ -78,19 +66,22 @@ impl Compiler {
             // updates template input
             new_input = Some(remain.to_string());
 
-            // updates output rules
-            let symbol = capture["symbol"].to_string();
-            let key = capture["key"].trim().to_string();
+            let open = capture.name("open").unwrap().as_str();
+            let close = capture.name("close").unwrap().as_str();
+            let symbol = capture.name("symbol").unwrap().as_str();
 
+            // updates output rules
             self.compiled.push(
                 match (&capture["symbol"], &capture["key"]) {
-                    (_, ".") => Rule::Noop(false, symbol),
-                    _ => Rule::Symbolic(false, Symbol::from(symbol), key)
+                    (_, ".") =>
+                        DefaultRule::Iterator((open, close), symbol),
+                    _ =>
+                        DefaultRule::Symbolic((open, close), symbol, capture["key"].trim().to_string())
                 }
             );
         } else { // fills the default rule
             let (s, remain) = old_input.split_at(1);
-            let mut new_rule: Option<Rule> = None;
+            let mut new_rule: Option<DefaultRule> = None;
 
             // updates compiler status
             self.status.updates(s);
@@ -100,11 +91,11 @@ impl Compiler {
 
             // updates output rules
             match self.compiled.last_mut() {
-                Some(&mut Rule::Default(false, ref mut value)) => {
+                Some(&mut DefaultRule::Default(ref mut value)) => {
                     value.push_str(s);
                 },
                 _ => {
-                    new_rule = Some(Rule::Default(false, s.to_string()));
+                    new_rule = Some(DefaultRule::Default(s.to_string()));
                 }
             }
 
@@ -113,14 +104,10 @@ impl Compiler {
             }
         }
 
-        // updates compiler input (effective)
-        if let Some(input) = new_input {
-            self.input = input;
-        }
-
-        Some(self.status.clone())
+        Ok(new_input)
     }
 
+/*
     pub fn trails(&mut self) -> Option<CompilingStatus> {
         if self.compiled.is_empty() {
             return None;
@@ -149,8 +136,8 @@ impl Compiler {
         use self::Rule::*;
 
         match (prev, current.clone(), next) {
-            (prec, Default(false, mut out), next) => {
-                if let Symbolic(false, symbol, ..) = prec {
+            (prec, Default(mut out), next) => {
+                if let Symbolic(symbol, ..) = prec {
                     // instruction rules connot be followed by newlines
                     if symbol.is_instruction() || symbol.is_comment() {
                         if out.starts_with("\r") {
@@ -163,7 +150,7 @@ impl Compiler {
                     }
                 }
 
-                if let Symbolic(false, symbol, ..) = next {
+                if let Symbolic(symbol, ..) = next {
                     // instruction rules connot be preceded by whitespaces
                     if symbol.is_instruction() || symbol.is_comment() {
                         let backup = out.clone();
@@ -183,7 +170,7 @@ impl Compiler {
                 }
 
                 if out != String::default() {
-                    self.trailed.push(Default(false, out));
+                    self.trailed.push(Default(out));
                 }
             },
             _ => self.trailed.push(current)
@@ -191,14 +178,30 @@ impl Compiler {
 
         Some(self.status.clone())
     }
+    */
 }
 
-pub fn compile(tmpl: String) -> Result<Template, CompilingError> {
-    let mut compiler = Compiler::new(&tmpl);
+use compiling::{ Matcher, RuleMatching };
+use rule::Template;
+
+pub fn compile_template<'r, R>(tmpl: String) -> Result<Template<R>, CompilingError> where R: Sized + Clone + PartialEq + RuleMatching + From<DefaultRule<'r>> {
+    let matcher: &'r Matcher = &Matcher::build(R::configure_matching()).unwrap(); //FIXME all things needs to be done at the end, try to put out the 'r lifetime
+    let mut compiler = Compiler::<R>::default();
+
+    let mut current_input = tmpl.clone();
+    let mut old_input;
 
     // FIRST STEP: compiles input to template
-    while let Some(status) = compiler.compiles() {
-        if let Some(error) = status.error {
+    while !current_input.is_empty() {
+        old_input = current_input.clone();
+
+        if let Ok(new_input) = compiler.compiles(&old_input, &matcher) {
+            if let Some(new_input) = new_input {
+                current_input = new_input;
+            }
+        }
+
+        if let Some(error) = compiler.status.error {
             return Err(error);
         }
     }
@@ -208,22 +211,32 @@ pub fn compile(tmpl: String) -> Result<Template, CompilingError> {
     compiler.compiled.reverse();
 
     // SECOND STEP: trails template to sanitized template
+    /*
     while let Some(status) = compiler.trails() {
         if let Some(error) = status.error {
             return Err(error);
         }
     }
 
-    Ok(Template::new(compiler.trailed))
+    */
+
+    let mut converted_rules: Vec<R> = vec![];
+    for rule in compiler.compiled {
+        converted_rules.push(R::from(rule))
+    }
+
+    Ok(Template::new(converted_rules))
 }
 
-pub fn compile_partials(partials: Value) -> Result<HashMap<String, Template>, CompilingError> {
+/*
+pub fn compile_partials<R>(partials: Value) -> Result<HashMap<String, Template<R>>, CompilingError>
+where R: Sized + RuleMatching {
     if let Value::Object(map) = partials {
         let mut hash = HashMap::new();
 
         for (key, value) in map {
             if let Value::String(s) = value {
-                hash.insert(key, compile(s).unwrap());
+                hash.insert(key, compile_template(s).unwrap());
             } else {
                 return Err(CompilingError::InvalidStatement(
                     String::from("Cannot compile partials")
@@ -237,4 +250,9 @@ pub fn compile_partials(partials: Value) -> Result<HashMap<String, Template>, Co
             String::from("Cannot compile partials")
         ))
     }
+}
+*/
+
+pub fn compile() {
+    unimplemented!()
 }

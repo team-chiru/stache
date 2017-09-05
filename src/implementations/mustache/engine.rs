@@ -3,9 +3,9 @@ use self::serde_json::Value;
 
 use std::collections::HashMap;
 
-use error::ExecutionError;
-use rule::{ Symbol, Rule, Template };
-use command::{ Engine, Command };
+use execution::{ ExecutionError, ;
+use rule::{ Rule, DefaultRule, Template };
+use command::{ Engine };
 
 fn interpolate(key: &String, json: &Value) -> Mustache {
     let mut data = Some(json);
@@ -39,6 +39,8 @@ fn interpolate(key: &String, json: &Value) -> Mustache {
             _ => None
         };
 
+        unimplemented!()
+        /*
         if let Some(v) = value {
             Command::Write(v)
         } else {
@@ -47,12 +49,16 @@ fn interpolate(key: &String, json: &Value) -> Mustache {
     } else {
         Command::None
     }
+    */
 }
 
 fn interpolate_section(key: &String, context: &Value) -> Mustache {
     let path = String::from("/") + &key.replace(".", "/");
-    let close = Rule::Symbolic(false, Symbol::from("/"), key.clone());
 
+    unimplemented!()
+
+    /*
+    let close = Rule::Symbolic(Symbol::from("/"), key.clone());
     if let Some(json) = context.pointer(&path) {
         use self::serde_json::Value::*;
 
@@ -70,13 +76,15 @@ fn interpolate_section(key: &String, context: &Value) -> Mustache {
     } else {
         Command::Skip(close)
     }
+    */
 }
 
 fn interpolate_inverted(key: &String, context: &Value) -> Mustache {
     let path = String::from("/") + &key.replace(".", "/");
     let default = vec![context.clone()];
-    let close = Rule::Symbolic(false, Symbol::from("/"), key.clone());
 
+/*
+let close = Rule::Symbolic(Symbol::from("/"), key.clone());
     if let Some(json) = context.pointer(&path) {
         use self::serde_json::Value::*;
 
@@ -95,11 +103,18 @@ fn interpolate_inverted(key: &String, context: &Value) -> Mustache {
     } else {
         Command::Extract(close, default, false)
     }
+    */
 }
 
-pub type Mustache = Command<Value, String>;
+//pub type Mustache = Command<Value, String>;
+struct MustacheEngine<'symbol> {
+    template: Template<'symbol>,
+    partials: HashMap<String, Template<'symbol>>,
+    context: Vec<Value>,
+    output: String
+}
 
-impl Engine<Value, String> for Mustache {
+impl<'symbol> Engine<Value, String> for MustacheEngine<'symbol> {
     fn render(template: Template, partials: HashMap<String, Template>, contexts: Vec<Value>) -> Result<String, ExecutionError> {
         let mut output = String::default();
         let mut template = template.clone();
@@ -107,6 +122,7 @@ impl Engine<Value, String> for Mustache {
         while let Some(rule) = template.next() {
             let mut context_stack = contexts.iter().rev();
 
+/*
             while let Some(context) = context_stack.next() {
                 use self::Rule::*;
                 use self::Command::*;
@@ -114,7 +130,7 @@ impl Engine<Value, String> for Mustache {
                 let mut is_written = false;
 
                 let cmd = match rule {
-                    Symbolic(false, ref symbol, ref key) => {
+                    Symbolic(ref symbol, ref key) => {
                         match symbol.get() {
                             "" => interpolate(key, context),
                             "#" => interpolate_section(key, context),
@@ -125,11 +141,11 @@ impl Engine<Value, String> for Mustache {
                             _ => unimplemented!()
                         }
                     },
-                    Noop(false, ref symbol) => {
+                    Iterator(ref symbol) => {
                         match symbol.as_ref() {
                             "" => interpolate(&String::default(), context),
                             "#" => {
-                                let close = Rule::Noop(false, "/".to_string());
+                                let close = Rule::Iterator("/".to_string());
 
                                 match context.clone() {
                                     Value::Array(values) => Command::Extract(close, values, true),
@@ -140,7 +156,7 @@ impl Engine<Value, String> for Mustache {
                             _ => unimplemented!()
                         }
                     },
-                    Default(false, ref value) => {
+                    Default(ref value) => {
                         Command::Write(value.clone())
                     },
                     _ => Command::None
@@ -201,6 +217,7 @@ impl Engine<Value, String> for Mustache {
                     break;
                 }
             }
+            */
         }
 
         Ok(output)

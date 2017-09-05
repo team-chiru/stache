@@ -50,7 +50,7 @@ fn reshape_interpolation(to_reshape: Value, template: &Template) -> Value {
             return to_reshape;
         }
 
-        if let Some(Rule::Default(false, next)) = template.get(next_index) {
+        if let Some(Rule::Default(next)) = template.get(next_index) {
             for (key, value) in map {
                 if let Value::String(mut content) = value.clone() {
                     for next_char in next.chars() {
@@ -137,7 +137,7 @@ impl Engine<String, Value> for Stachemu {
             use self::Command::*;
 
             let engine: Stachemu = match rule {
-                Symbolic(false, ref symbol, ref key) => {
+                Symbolic(ref symbol, ref key) => {
                     match symbol.get() {
                         "" => {
                             let mut new_map = Map::new();
@@ -156,7 +156,7 @@ impl Engine<String, Value> for Stachemu {
                         _ => unimplemented!()
                     }
                 },
-                Noop(false, ref symbol) => {
+                Iterator(ref symbol) => {
                     match symbol.as_ref() {
                         "" => unimplemented!(),
                         "#" => unimplemented!(),
@@ -164,7 +164,7 @@ impl Engine<String, Value> for Stachemu {
                         _ => unimplemented!()
                     }
                 },
-                Default(false, ref value) => {
+                Default(ref value) => {
                     let (to_match, new_context) = context.split_at(value.len());
 
                     if is_matching(value, to_match) {
@@ -192,7 +192,7 @@ impl Engine<String, Value> for Stachemu {
                             }
                         }
 
-                        if let Rule::Default(false, eaten) = rule.clone() {
+                        if let Rule::Default(eaten) = rule.clone() {
                             context.drain(..eaten.len());
                         }
 
