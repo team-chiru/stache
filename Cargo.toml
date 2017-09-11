@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "stache",
-    "stache_derive",
     "mustache",
     "stachemu"
 ]

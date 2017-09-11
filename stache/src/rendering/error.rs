@@ -2,23 +2,23 @@ use std::error;
 use std::fmt;
 
 #[derive(Debug, Clone)]
-pub enum ExecutionError {
+pub enum RenderingError {
     InvalidStatement(String)
 }
 
-impl fmt::Display for ExecutionError {
+impl fmt::Display for RenderingError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ExecutionError::InvalidStatement(ref state) =>
+            RenderingError::InvalidStatement(ref state) =>
                 write!(f, "InvalidStatement error: {}", state)
         }
     }
 }
 
-impl error::Error for ExecutionError {
+impl error::Error for RenderingError {
     fn description(&self) -> &str {
         match *self {
-            ExecutionError::InvalidStatement { .. } => "an invalid sequence of states has occurred",
+            RenderingError::InvalidStatement { .. } => "an invalid sequence of states has occurred",
         }
     }
 

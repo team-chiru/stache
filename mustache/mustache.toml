@@ -37,10 +37,6 @@ key_regex = ''' \sa-zA-Z0-9!.\-='^#/!?>&'''
     name = "comment"
     command = "!"
 
-    [[rules.directives]]
-    name = "comment"
-    command = "!"
-
 [[rules]]
     [rules.delimiter]
     open = "{{{"

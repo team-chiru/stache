@@ -1,7 +1,7 @@
 use serde_json::{ Value, Map };
 use std::collections::HashMap;
 
-use error::ExecutionError;
+use error::RenderingError;
 use rule::{ Template, Rule };
 use command::{ Engine, Command };
 
@@ -36,7 +36,7 @@ impl Engine<String, Value> for Stachemu {
         }
     }
 
-    fn execute(self, template: &mut Template, partial: &HashMap<String, Template>, contexts: &Vec<String>) -> Result<Value, ExecutionError> {
+    fn execute(self, template: &mut Template, partial: &HashMap<String, Template>, contexts: &Vec<String>) -> Result<Value, RenderingError> {
         use self::Command::*;
 
         match self {
@@ -48,7 +48,7 @@ impl Engine<String, Value> for Stachemu {
         }
     }
 
-    fn render(template: Template, partials: HashMap<String, Template>, contexts: Vec<String>) -> Result<Value, ExecutionError> {
+    fn render(template: Template, partials: HashMap<String, Template>, contexts: Vec<String>) -> Result<Value, RenderingError> {
         let mut output = Map::new();
         let mut tmpl = template.clone();
 

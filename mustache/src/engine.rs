@@ -3,7 +3,7 @@ use self::serde_json::Value;
 
 use std::collections::HashMap;
 
-use execution::{ ExecutionError, ;
+use execution::{ RenderingError, ;
 use rule::{ Rule, DefaultRule, Template };
 use command::{ Engine };
 
@@ -115,7 +115,7 @@ struct MustacheEngine<'symbol> {
 }
 
 impl<'symbol> Engine<Value, String> for MustacheEngine<'symbol> {
-    fn render(template: Template, partials: HashMap<String, Template>, contexts: Vec<Value>) -> Result<String, ExecutionError> {
+    fn render(template: Template, partials: HashMap<String, Template>, contexts: Vec<Value>) -> Result<String, RenderingError> {
         let mut output = String::default();
         let mut template = template.clone();
 
@@ -165,7 +165,7 @@ impl<'symbol> Engine<Value, String> for MustacheEngine<'symbol> {
                 match cmd {
                     Skip(next_rule) => {
                         if template.walk_until(&next_rule).is_none() {
-                            return Err(ExecutionError::InvalidStatement(String::from("Incomplete template")));
+                            return Err(RenderingError::InvalidStatement(String::from("Incomplete template")));
                         }
                     },
                     Extract(next_rule, slices, is_global_needed) => {
@@ -186,7 +186,7 @@ impl<'symbol> Engine<Value, String> for MustacheEngine<'symbol> {
                                 }
                             }
                         } else {
-                            return Err(ExecutionError::InvalidStatement(String::from("Incomplete template")));
+                            return Err(RenderingError::InvalidStatement(String::from("Incomplete template")));
                         }
                     },
                     Import(key) => {

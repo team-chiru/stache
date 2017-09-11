@@ -1,16 +1,17 @@
 use regex;
 use expr;
+use expr::Delimiter;
 
 #[derive(Debug, Clone)]
 pub struct Matcher {
-    tokens: Vec<regex::Regex>
+    constraints: Vec<regex::Regex>
 }
 
 impl Matcher {
-    pub fn build(expr: expr::Expression) -> Result<Self, regex::Error> {
+    pub fn build(expr: &expr::Expression) -> Result<Self, regex::Error> {
         let mut symbol_pattern = String::from("(?P<symbol>[");
 
-        for symbol in expr.directives.clone() {
+        for symbol in expr.commands.clone() {
             symbol_pattern += regex::escape(symbol.as_ref()).as_ref();
         }
 
@@ -19,7 +20,7 @@ impl Matcher {
         let key_pattern = String::from("(?P<key>[") + expr.key_regex.as_ref() + "]+)";
         let mut expressions: Vec<regex::Regex> = vec![];
 
-        for ( open, close ) in expr.delimiters.clone() {
+        for Delimiter { open, close } in expr.delimiters.clone() {
             let open_pattern = String::from("(?P<open>") + regex::escape(open.as_ref()).as_ref() + ")";
             let close_pattern = String::from("(?P<close>") + regex::escape(close.as_ref()).as_ref() + ")";
 
@@ -31,30 +32,16 @@ impl Matcher {
             }
         }
 
-        Ok(Matcher { tokens: expressions })
+        Ok(Matcher { constraints: expressions })
     }
 
     pub fn captures<'r>(&'r self, input: &'r String) -> Option<regex::Captures<'r>> {
-        for re in self.tokens.clone() {
+        for re in self.constraints.clone() {
             if let Some(capture) = re.captures(input) {
                 return Some(capture);
             }
         }
 
         None
-    }
-}
-
-pub trait RuleMatching {
-    fn get_delimiters() -> Vec<expr::Delimiter>;
-    fn get_directives() -> Vec<expr::Symbol>;
-    fn get_default_keys() -> String;
-
-    fn configure_matching<'e>() -> expr::Expression {
-        expr::Expression {
-            delimiters: Self::get_delimiters(),
-            directives: Self::get_directives(),
-            key_regex: Self::get_default_keys()
-        }
     }
 }

@@ -8,9 +8,11 @@ license = "MIT/Apache-2.0"
 name = "mustache"
 
 [dependencies]
+serde = "*"
+serde_derive ="*"
 serde_json = "*"
+toml = "*"
 stache = { path = "../stache" }
-stache_derive = { path = "../stache_derive" }
 
 [dev-dependencies]
 stainless = "*"

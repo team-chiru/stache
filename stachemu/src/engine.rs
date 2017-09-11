@@ -1,7 +1,7 @@
 use serde_json::{ Value, Map };
 use std::collections::HashMap;
 
-use error::ExecutionError;
+use error::RenderingError;
 use rule::{ Template, Rule };
 use command::{ Engine, Command };
 
@@ -119,14 +119,14 @@ fn merge_into(into: &Value, key: &String, value: &Value) -> Value {
 }
 
 impl Engine<String, Value> for Stachemu {
-    fn render(template: Template, partials: HashMap<String, Template>, contexts: Vec<String>) -> Result<Value, ExecutionError> {
+    fn render(template: Template, partials: HashMap<String, Template>, contexts: Vec<String>) -> Result<Value, RenderingError> {
         let mut output = Value::Null;
         let mut tmpl = template.clone();
 
         let mut context = match contexts.get(0) {
             Some(ctx) => ctx.clone(),
             None => return Err(
-                ExecutionError::InvalidStatement(
+                RenderingError::InvalidStatement(
                     "Only one context can be rendered!".to_string()
                 )
             )

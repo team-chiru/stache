@@ -1,61 +1,17 @@
 use super::error::CompilingError;
 use status::Status;
-use rule::{ DefaultRule, Template };
-use compiling::{ Matcher, RuleMatching };
-
-use std::collections::HashMap;
-use regex;
-use serde_json::Value;
-use std::marker::Sized;
+use rule::{ DefaultRule };
+use Template;
+use super::matcher::Matcher;
+use expr::Delimiter;
 
 type CompilingStatus = Status<CompilingError>;
 
 #[derive(Debug, Clone)]
-struct Compiler<Rule> {
+pub struct Compiler {
     matcher: Matcher,
-    input: String,
-    compiled: Vec<Rule>,
-    trailed: Vec<Rule>
-}
-
-pub fn compiles_template<Rule>(tmpl: &String) -> Result<Template<Rule>, CompilingError> where Rule: RuleMatching + PartialEq + Clone + From<DefaultRule> + Into<DefaultRule> {
-    let mut current_input = tmpl.clone();
-    let mut old_input;
-    let mut compiler: Compiler<Rule> = Compiler::new(tmpl.clone());
-
-    // FIRST STEP: compiles input to template
-    while !&compiler.input.is_empty() {
-        old_input = current_input.clone();
-        let mut next_input: Option<String> = None;
-
-        let position = compiler.process(Status::default());
-
-        if let Some(new_input) = position.remained {
-            compiler.input = new_input;
-        } else {
-            panic!()
-        }
-
-        if let Some(error) = position.status.error {
-            return Err(error);
-        }
-    }
-
-    // resets status and prepares second step
-    //self.status = CompilingStatus::default();
-    //self.compiled.reverse();
-
-    // SECOND STEP: trails template to sanitized template
-    /*
-    while let Some(status) = compiler.trails() {
-    if let Some(error) = status.error {
-    return Err(error);
-}
-}
-
-*/
-
-    Ok(Template::new(compiler.compiled.clone()))
+    compiled: Vec<DefaultRule>,
+    trailed: Vec<DefaultRule>
 }
 
 #[derive(Debug, Clone)]
@@ -75,24 +31,23 @@ impl Default for Position {
     }
 }
 
-impl<Rule> Compiler<Rule> where Rule: RuleMatching  {
-    fn new(template: String) -> Self {
+impl Compiler {
+    pub fn new(matcher: Matcher) -> Self {
         Compiler {
-            matcher: Matcher::build(Rule::configure_matching()).unwrap(),
-            input: template,
+            matcher: matcher,
             compiled: vec![],
             trailed: vec![]
         }
     }
 
-    fn process(&mut self, debug_status: CompilingStatus) -> Position where Rule: From<DefaultRule> + Into<DefaultRule> {
+    fn process(&mut self, input: String, debug: CompilingStatus) -> Position {
         let next_input: Option<String>;
         let captured: Option<String>;
 
-        let old_input = self.input.clone();
-        let mut next_status = debug_status.clone();
+        let old_input = input.clone();
+        let mut next_status = debug.clone();
 
-        if let Some(capture) = self.matcher.captures(&self.input) {
+        if let Some(capture) = self.matcher.captures(&input) {
             let len = capture[0].len();
             let (s, remain) = old_input.split_at(len);
 
@@ -106,15 +61,11 @@ impl<Rule> Compiler<Rule> where Rule: RuleMatching  {
             let open = String::from(capture.name("open").unwrap().as_str());
             let close = String::from(capture.name("close").unwrap().as_str());
             let symbol = String::from(capture.name("symbol").unwrap().as_str());
+            let key = String::from(capture.name("key").unwrap().as_str());
 
             // updates output rules
             self.compiled.push(
-                match (&capture["symbol"], &capture["key"]) {
-                    (_, ".") =>
-                        Rule::from(DefaultRule::Iterator((open, close), symbol)),
-                    _ =>
-                        Rule::from(DefaultRule::Symbolic((open, close), symbol, capture["key"].trim().to_string()))
-                }
+                DefaultRule::Symbolic( Delimiter { open, close }, symbol, key)
             );
         } else { // fills the default rule
             let (s, remain) = old_input.split_at(1);
@@ -143,11 +94,11 @@ impl<Rule> Compiler<Rule> where Rule: RuleMatching  {
             }
 
             if let Some(rule) = last_rule {
-                self.compiled.push(Rule::from(rule));
+                self.compiled.push(rule);
             }
 
             if let Some(rule) = new_rule {
-                self.compiled.push(Rule::from(rule));
+                self.compiled.push(rule);
             }
         }
 
@@ -156,6 +107,41 @@ impl<Rule> Compiler<Rule> where Rule: RuleMatching  {
             remained: next_input,
             status: next_status
         }
+    }
+
+    pub fn compiles_template(&mut self, tmpl: &String) -> Result<Template<DefaultRule>, CompilingError> {
+        let mut input = tmpl.clone();
+
+        // FIRST STEP: compiles input to template
+        while !&input.is_empty() {
+            let position = self.process(input, Status::default());
+
+            if let Some(new_input) = position.remained {
+                input = new_input;
+            } else {
+                panic!()
+            }
+
+            if let Some(error) = position.status.error {
+                return Err(error);
+            }
+        }
+
+        // resets status and prepares second step
+        //self.status = CompilingStatus::default();
+        //self.compiled.reverse();
+
+        // SECOND STEP: trails template to sanitized template
+        /*
+        while let Some(status) = compiler.trails() {
+        if let Some(error) = status.error {
+        return Err(error);
+    }
+    }
+
+    */
+
+        Ok(Template::new(self.compiled.clone()))
     }
 }
 
