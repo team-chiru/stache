@@ -1,0 +1,16 @@
+[package]
+name = "mustache"
+version = "0.0.1"
+authors = ["team-chiru@protonmail.com"]
+license = "MIT/Apache-2.0"
+
+[[bin]]
+name = "mustache"
+
+[dependencies]
+serde_json = "*"
+stache = { path = "../stache" }
+stache_derive = { path = "../stache_derive" }
+
+[dev-dependencies]
+stainless = "*"

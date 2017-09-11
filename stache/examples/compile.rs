@@ -1,9 +1,9 @@
-extern crate stachemu;
+extern crate stache;
 
-use stachemu::{ file, compiling };
+use stache::{ file, compiling };
 
 use stachemu::implementations::mustache::MustacheRule;
-use stachemu::compiling::{ Matcher, RuleMatching };
+use stache::compiling::{ Matcher, RuleMatching };
 
 fn main() {
     println!("{:?}", Matcher::build(MustacheRule::configure_matching()));

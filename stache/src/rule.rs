@@ -1,25 +1,25 @@
 use expr;
 
 #[derive(PartialEq, Debug, Clone)]
-pub enum DefaultRule<'r> {
-    Iterator(expr::Delimiter<'r>, expr::Symbol<'r>),
-    Symbolic(expr::Delimiter<'r>, expr::Symbol<'r>, String),
+pub enum DefaultRule {
+    Iterator(expr::Delimiter, expr::Symbol),
+    Symbolic(expr::Delimiter, expr::Symbol, String),
     Default(String),
     None
 }
 
-impl<'r> Default for DefaultRule<'r> {
+impl<'r> Default for DefaultRule {
     fn default() -> Self {
         DefaultRule::Default(String::default())
     }
 }
 
-pub trait Rule<'r> where Self: From<DefaultRule<'r>> + Into<DefaultRule<'r>> + Clone {
+pub trait Rule<'r> where Self: From<DefaultRule> + Into<DefaultRule> + Clone {
     fn is_comment(&self) -> bool {
         let default: DefaultRule = self.clone().into();
 
-        if let DefaultRule::Symbolic(_, "!", _) = default {
-            true
+        if let DefaultRule::Symbolic(_, ref symbol, _) = default {
+            *symbol == String::from("!")
         } else {
             false
         }
@@ -29,7 +29,7 @@ pub trait Rule<'r> where Self: From<DefaultRule<'r>> + Into<DefaultRule<'r>> + C
         let default: DefaultRule = self.clone().into();
 
         if let DefaultRule::Symbolic(_, symbol, _) = default {
-            match symbol {
+            match symbol.as_ref() {
                 "#" | "/" | "^" | ">" => true,
                 _ => false
             }

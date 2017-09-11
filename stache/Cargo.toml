@@ -1,0 +1,14 @@
+[package]
+name = "stache"
+description = "Template matcher and builder heavily inspired of Mustache"
+repository = "https://github.com/team-chiru/stachemu"
+version = "0.0.1"
+authors = ["team-chiru@protonmail.com"]
+license = "MIT/Apache-2.0"
+
+[dependencies]
+regex = "*"
+serde = "*"
+serde_derive ="*"
+serde_json = "*"
+serde_yaml = "*"

@@ -6,5 +6,5 @@ pub type Matcher = matcher::Matcher;
 pub use self::matcher::RuleMatching;
 
 mod compiler;
-pub use self::compiler::compile;
-pub use self::compiler::compile_template;
+//pub type Compiler = matcher::Matcher;
+pub use self::compiler::compiles_template;
