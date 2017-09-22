@@ -13,11 +13,15 @@ impl Default for DefaultRule {
     }
 }
 
-pub trait Rule<'r> where Self: From<DefaultRule> + Into<DefaultRule> + Clone {
-    fn is_comment(&self) -> bool {
-        let default: DefaultRule = self.clone().into();
+pub trait Rule {
+    fn is_comment(&self) -> bool { false }
+    fn is_instruction(&self) -> bool { false }
+    fn is_dotted(&self) -> bool { false }
+}
 
-        if let DefaultRule::Symbolic(_, ref symbol, _) = default {
+impl Rule for DefaultRule {
+    fn is_comment(&self) -> bool {
+        if let DefaultRule::Symbolic(_, ref symbol, _) = *self {
             *symbol == String::from("!")
         } else {
             false
@@ -25,9 +29,7 @@ pub trait Rule<'r> where Self: From<DefaultRule> + Into<DefaultRule> + Clone {
     }
 
     fn is_instruction(&self) -> bool {
-        let default: DefaultRule = self.clone().into();
-
-        if let DefaultRule::Symbolic(_, symbol, _) = default {
+        if let DefaultRule::Symbolic(_, ref symbol, _) = *self {
             match symbol.as_ref() {
                 "#" | "/" | "^" | ">" => true,
                 _ => false
@@ -38,9 +40,7 @@ pub trait Rule<'r> where Self: From<DefaultRule> + Into<DefaultRule> + Clone {
     }
 
     fn is_dotted(&self) -> bool {
-        let default: DefaultRule = self.clone().into();
-
-        if let DefaultRule::Symbolic(_, _, ref key) = default {
+        if let DefaultRule::Symbolic(_, _, ref key) = *self {
             key.contains(".")
         } else {
             false

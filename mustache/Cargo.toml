@@ -15,4 +15,4 @@ toml = "*"
 stache = { path = "../stache" }
 
 [dev-dependencies]
-stainless = "*"
+stainless = "*" # TODO rustup default beta

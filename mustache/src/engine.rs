@@ -57,7 +57,6 @@ fn interpolate_section(key: &String, context: &Value) -> Mustache {
 
     unimplemented!()
 
-    /*
     let close = Rule::Symbolic(Symbol::from("/"), key.clone());
     if let Some(json) = context.pointer(&path) {
         use self::serde_json::Value::*;
@@ -76,7 +75,6 @@ fn interpolate_section(key: &String, context: &Value) -> Mustache {
     } else {
         Command::Skip(close)
     }
-    */
 }
 
 fn interpolate_inverted(key: &String, context: &Value) -> Mustache {

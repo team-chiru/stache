@@ -12,10 +12,10 @@ pub enum Command<Input, Output> {
 }
 */
 
-use Template;
+use { Template, Partials };
 use error::RenderingError;
 
-pub trait RuleEngine<R, Input, Output> {
-    fn render(Template<R>, HashMap<String, Template<R>>, Vec<Input>) -> Result<Output, RenderingError>
-    where Self: RuleEngine<R, Input, Output> + Sized + Debug, Input: Clone + Debug;
+pub trait TemplateEngine<R, Input, Output> {
+    fn render(Template<R>, Partials<R>, Vec<Input>) -> Result<Output, RenderingError>
+    where Self: TemplateEngine<R, Input, Output> + Sized + Debug, Input: Clone + Debug;
 }

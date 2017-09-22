@@ -1,10 +1,13 @@
+#![allow(unused_variables)]
 #[macro_use] extern crate serde_derive;
 
 extern crate serde_json;
 use serde_json::Value;
 
 extern crate stache;
-use stache::{ Template, RuleEngine, RuleCompiler, compiles_raw };
+use stache::{ Template, TemplateEngine, TemplateCompiler, Partials };
+use stache::testing::{ Pool };
+use stache::rule::Rule;
 use stache::error::{ RenderingError, CompilingError };
 
 use std::collections::HashMap;
@@ -24,68 +27,138 @@ pub enum Mustache {
     Default(String)
 }
 
-impl RuleCompiler<Mustache> for Mustache {
-    fn compiles(raw: &String) -> Result<Template<Mustache>, CompilingError> {
-        let descr = include_str!("../mustache.toml");
+pub type Test = Pool<Mustache, Value, String>;
 
-        compiles_raw(&descr, &raw)
+impl Default for Mustache {
+    fn default() -> Self {
+        Mustache::Default(String::default())
     }
 }
 
-impl RuleEngine<Mustache, Value, String> for Mustache {
-    fn render(template: Template<Mustache>, partials: HashMap<String, Template<Mustache>>, contexts: Vec<Value>) -> Result<String, RenderingError> {
-        let mut output = String::default();
+impl Rule for Mustache {
+    fn is_dotted(&self) -> bool {
+        use self::Mustache::*;
+
+        match *self {
+            Interpolation(ref key) if key.contains(".") => true,
+            EscapedInterpolation(ref key) if key.contains(".") => true,
+            Section(ref key) if key.contains(".") => true,
+            InvertedSection(ref key) if key.contains(".") => true,
+            _ => false
+        }
+    }
+}
+
+impl TemplateCompiler for Mustache {
+    fn compiles(raw: String, partials_raw: HashMap<String, String>) -> Result<(Template<Mustache>, Partials<Mustache>), CompilingError> {
+        Self::compiles_with_raw(&include_str!("../mustache.toml"), raw, HashMap::new())
+    }
+}
+
+impl TemplateEngine<Mustache, Value, String> for Mustache {
+    fn render(template: Template<Mustache>, partials: Partials<Mustache>, contexts: Vec<Value>) -> Result<String, RenderingError> {
+        let mut writter = Writter::new();
         let mut template = template.clone();
+        let global = contexts.clone();
 
         while let Some(ref rule) = template.next() {
-            let mut context_stack = contexts.iter().rev();
+            let mut context_stack = global.iter().rev();
 
             while let Some(context) = context_stack.next() {
                 use self::Mustache::*;
 
-                let mut is_written = false;
-
                 match *rule {
-                    Interpolation(ref value) => {
-                        let key = match value.as_ref() {
+                    Interpolation(ref key) => {
+                        let key = match key.as_ref() {
                             "." => String::default(),
-                            _ => value.clone()
+                            _ => key.clone()
                         };
 
                         if let Some(write) = interpolate(&key, context) {
-                            output.push_str(&write);
-                            is_written = true;
+                            writter.write(&write);
                         }
                     },
-                    EscapedInterpolation(ref value) => {
+                    EscapedInterpolation(_) => {
                         unimplemented!()
                     }
-                    Section(ref value) => {
-                        let cmd = match value.as_ref() {
+                    Section(ref key) => {
+                        /*
+                        let mut slices: Vec<Value> = vec![];
+
+                        match key.clone().as_ref() {
                             "." => {
-                                if let Value::Array(values) = context.clone() {
-                                    //Extractor::new(&String::default(), values, true))
-                                    Some(values)
-                                } else {
-                                    None
+                                if let Value::Array(mut values) = context.clone() {
+                                    slices.append(&mut values);
                                 }
                             },
-                            _ => unimplemented!()
-                        };
+                            _ => {
+                                if let Some(mut values) = interpolate_section(&key, &context) {
+                                    slices.append(&mut values);
+                                }
+                            }
+                        }
+
+                        if let Some(section) = template.split_until(&Mustache::Close(key.clone())) {
+                            for slice in slices {
+                                let mut new_contexts = global.clone();
+                                new_contexts.push(slice); // global context is needed
+
+                                println!("{:?}", section);
+                                println!("{:?}", new_contexts);
+                                match Mustache::render(section.clone(), partials.clone(), new_contexts.clone()) {
+                                    Ok(write) => {
+                                        writter.write(&write);
+                                    },
+                                    Err(error) => return Err(error)
+                                }
+                            }
+                        } else {
+                            return Err(RenderingError::InvalidStatement(
+                                String::from("Incomplete template")
+                            ));
+                        }
+                        */
+                        let mut extr = Extractor::new(key.clone());
+                        //println!("{:?}", context);
+
+                        match key.clone().as_ref() {
+                            "." => {
+                                if let Value::Array(mut values) = context.clone() {
+                                    extr.append(&mut values);
+                                }
+                            },
+                            _ => {
+                                if let Some(mut values) = interpolate_section(&key, &context) {
+                                    extr.append(&mut values);
+                                }
+                            }
+                        }
+
+                        match extr.extract(&mut template, partials.clone(), &global) {
+                            Ok(write) => writter.write(&write),
+                            Err(err) => return Err(err)
+                        }
                     },
-                    InvertedSection(ref value) => {}
-                    Close(ref value) => {}
-                    Partial(ref value) => {}
-                    Comment(ref value) => {}
-                    Default(ref value) => {}
+
+
+                    InvertedSection(_) => {
+
+                    },
+                    Close(_) => {}
+                    Partial(_) => {}
+                    Comment(_) => {}
+                    Default(ref value) => {
+                        writter.write(&value);
+                    }
                 }
 
-                if is_written { // FIXME || rule.is_dotted()
+                if writter.is_written || rule.is_dotted() {
+                    writter.reset();
                     break;
                 }
             }
         }
 
-        unimplemented!()
+        Ok(writter.buffer)
     }
 }

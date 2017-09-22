@@ -1,8 +1,9 @@
 use rule::DefaultRule;
 use expr::Description;
-use serde_json::{ from_value, Value, Map };
+use serde_json::{ from_value, Value };
 use heck::CamelCase;
 use serde;
+use std::collections::HashMap;
 
 macro_rules! map {
     (@single $($x:tt)*) => (());
@@ -21,12 +22,14 @@ macro_rules! map {
     };
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Default, PartialEq, Debug, Clone)]
 pub struct Template<R> {
     rules: Vec<R>,
     buffer: i32,
     now: i32
 }
+
+pub type Partials<R> = HashMap<String, Template<R>>;
 
 impl Template<DefaultRule> {
     pub fn from_default<R>(self, descr: &Description) -> Template<R>
@@ -68,8 +71,24 @@ impl<R> Template<R> where R: Clone + PartialEq {
         }
     }
 
+    pub fn rules(&self) -> Vec<R> {
+        self.rules.clone()
+    }
+
     pub fn get(&self, index: i32) -> Option<R> {
         self.rules.get(index as usize).map(|r| r.clone())
+    }
+
+    pub fn pop(&mut self) -> Option<R> {
+        self.rules.pop()
+    }
+
+    pub fn last(&self) -> Option<&R> {
+        self.rules.last()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.rules.is_empty()
     }
 
     pub fn now(&self) -> i32 { self.now }

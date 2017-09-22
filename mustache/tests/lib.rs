@@ -1,19 +1,16 @@
 #![feature(plugin)]
 #![cfg_attr(test, plugin(stainless))]
 
-extern crate serde_json;
-use self::serde_json::Value;
-
 extern crate stache;
-use stache::engines::{ Mustache };
-use stache::specs::pool::{ Pool };
+extern crate mustache;
 
-type MustachePool = Pool<Value, String>;
+use mustache::{ Mustache, Test };
+use stache::testing::{ TestPool };
 
 describe! mustache_tests {
     before_each {
-        let base = String::from("specs/mustache/specs/");
-        let mut pool = MustachePool::default();
+        let base = String::from("spec/specs/");
+        let mut pool = Test::default();
     }
 
     describe! interpolation {
@@ -129,6 +126,7 @@ describe! mustache_tests {
         }
     }
 
+/*
     describe! inverted {
         before_each {
             let path = base + "inverted.yml";
@@ -224,9 +222,10 @@ describe! mustache_tests {
             it "padding whitespace" { pool.name("Padding Whitespace"); }
         }
     }
+    */
 
     after_each {
-        let result = pool.process::<Mustache>().unwrap();
+        let result = pool.process().unwrap();
         let expected = pool.test.unwrap().expected;
 
         println!("expected: \n{:?}", expected);

@@ -1,5 +1,5 @@
 pub mod error;
 mod matcher;
-mod compiler;
-
-pub mod rule_compiler;
+pub mod parser;
+pub mod trailer;
+pub mod compiler;
