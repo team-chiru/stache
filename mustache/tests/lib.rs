@@ -1,5 +1,6 @@
 #![feature(plugin)]
 #![cfg_attr(test, plugin(stainless))]
+#![allow(unused_imports)]
 
 extern crate stache;
 extern crate mustache;
@@ -126,7 +127,6 @@ describe! mustache_tests {
         }
     }
 
-/*
     describe! inverted {
         before_each {
             let path = base + "inverted.yml";
@@ -222,7 +222,6 @@ describe! mustache_tests {
             it "padding whitespace" { pool.name("Padding Whitespace"); }
         }
     }
-    */
 
     after_each {
         let result = pool.process().unwrap();

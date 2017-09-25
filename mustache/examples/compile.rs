@@ -7,5 +7,5 @@ use stache::{ file, TemplateCompiler };
 fn main() {
     let sample = file::read("examples/sample.mustache").unwrap();
 
-    //println!("{:?}", Mustache::compiles(&sample));
+    println!("{:?}", Mustache::compiles_template(sample));
 }

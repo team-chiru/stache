@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 use serde_json::Value;
 
+#[derive(Debug, Clone)]
 pub struct Writter<Output> {
     pub buffer: Output,
     pub is_written: bool
@@ -63,100 +64,64 @@ pub fn interpolate(key: &String, json: &Value) -> Option<String> {
 }
 
 // needs global each time
-pub fn interpolate_section(key: &String, context: &Value) -> Option<Vec<Value>> {
+pub fn interpolate_section(key: &String, context: &Value, global: &Vec<Value>) -> Vec<Vec<Value>> {
+    let path = String::from("/") + &key.replace(".", "/");
+    let mut slices: Vec<Value> = vec![];
+
+    if "." == key {
+        if let Value::Array(mut values) = context.clone() {
+            slices.append(&mut values);
+        }
+    } else if let Some(json) = context.pointer(&path) {
+        use self::Value::*;
+
+        match json.clone() {
+            Bool(false) | Null => {},
+            Array(mut values) => {
+                if !values.is_empty() {
+                    slices.append(&mut values);
+                }
+            },
+            _ => slices.push(json.clone())
+        }
+    }
+
+    let mut new_contexts = vec![];
+    for slice in slices {
+        let mut new_context = global.clone();
+
+        new_context.push(slice); // global context is needed
+        new_contexts.push(new_context);
+    }
+
+    new_contexts
+}
+
+pub fn interpolate_inverted(key: &String, context: &Value, global: &Vec<Value>) -> Vec<Vec<Value>> {
+    let mut new_contexts = vec![];
     let path = String::from("/") + &key.replace(".", "/");
 
     if let Some(json) = context.pointer(&path) {
         use self::Value::*;
 
         match json.clone() {
-            Bool(false) | Null => None,
-            Array(values) => {
-                if values.is_empty() {
-                    None
-                } else {
-                    Some(values)
-                }
-            },
-            _ => Some(vec![json.clone()])
-        }
-    } else {
-        None
-    }
-}
-
-fn interpolate_inverted(key: &String, context: &Value) -> Option<Vec<Value>> {
-    let path = String::from("/") + &key.replace(".", "/");
-    let default = vec![context.clone()];
-
-    if let Some(json) = context.pointer(&path) {
-        use self::Value::*;
-
-        match json.clone() {
-            Bool(true) => None,
-            Bool(false) | Null => Some(default),
-            Array(values) => {
-                if values.is_empty() {
-                    Some(default)
-                } else {
-                    None
-                }
-            },
-            _ => None
-        }
-    } else {
-        Some(default)
-    }
-}
-
-use stache::{ Template, Partials, TemplateEngine };
-use stache::error::{ RenderingError };
-use Mustache;
-
-#[derive(Debug, Clone)]
-pub struct Extractor {
-    skip: Mustache,
-    slices: Vec<Value>
-}
-
-impl Extractor {
-    pub fn new(key: String) -> Self {
-        Extractor {
-            skip: Mustache::Close(key),
-            slices: vec![]
-        }
-    }
-
-    pub fn append(&mut self, contexts: &mut Vec<Value>) {
-        self.slices.append(contexts);
-    }
-
-    pub fn extract(&self, template: &mut Template<Mustache>, partials: Partials<Mustache>, global: &Vec<Value>) -> Result<String, RenderingError> {
-        let mut writter = Writter::new();
-
-        if let Some(section) = template.split_until(&self.skip) {
-            for slice in &self.slices {
-                println!("{:?}", slice);
-                let mut new_contexts = global.clone();
-                new_contexts.push(slice.clone()); // global context is needed
-
-                println!("{:?}", section);
-                println!("{:?}", new_contexts);
-                match Mustache::render(section.clone(), partials.clone(), new_contexts) {
-                    Ok(write) => {
-                        writter.write(&write);
-                    },
-                    Err(error) => return Err(error)
-                }
-
-                writter.reset();
+            Bool(false) | Null => {
+                new_contexts.push(vec![context.clone()]);
             }
-        } else {
-            return Err(RenderingError::InvalidStatement(
-                String::from("Incomplete template")
-            ));
+            Array(values) => {
+                if values.is_empty() {
+                    let mut new_context = global.clone();
+                    new_context.push(context.clone()); // global context is needed
+                    new_contexts.push(new_context);
+                }
+            },
+            _ => {}
         }
-
-        Ok(writter.buffer)
+    } else {
+        let mut new_context = global.clone();
+        new_context.push(context.clone()); // global context is needed
+        new_contexts.push(new_context);
     }
+
+    new_contexts
 }

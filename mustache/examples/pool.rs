@@ -7,11 +7,11 @@ use stache::testing::{ TestPool };
 
 fn main() {
     let base = String::from("spec/specs/");
-    let path = base + "sections.yml";
+    let path = base + "partials.yml";
     let mut pool = Test::default();
 
     pool.path(&path);
-    pool.name("Nested (Truthy)");
+    pool.name("Basic Behavior");
 
     let (template, partials, data) = pool.debug().unwrap();
     //println!("{:?}", template);

@@ -15,4 +15,4 @@ toml = "*"
 stache = { path = "../stache" }
 
 [dev-dependencies]
-stainless = "*" # TODO rustup default beta
+stainless = "*" # FIXME rustup override add nightly-2017-08-29

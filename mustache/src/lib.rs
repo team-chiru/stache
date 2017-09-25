@@ -50,8 +50,22 @@ impl Rule for Mustache {
 }
 
 impl TemplateCompiler for Mustache {
-    fn compiles(raw: String, partials_raw: HashMap<String, String>) -> Result<(Template<Mustache>, Partials<Mustache>), CompilingError> {
-        Self::compiles_with_raw(&include_str!("../mustache.toml"), raw, HashMap::new())
+    fn compiles_template(input: String) -> Result<Template<Mustache>, CompilingError> {
+        match Self::compiles_with_formula(&include_str!("../mustache.toml"), Some(input), None) {
+            Ok((tmpl, _)) => Ok(tmpl),
+            Err(err) => Err(err)
+        }
+    }
+
+    fn compiles_partial(partials_input: HashMap<String, String>) -> Result<Partials<Mustache>, CompilingError> {
+        match Self::compiles_with_formula(&include_str!("../mustache.toml"), None, Some(partials_input)) {
+            Ok((_, partials)) => Ok(partials),
+            Err(err) => Err(err)
+        }
+    }
+
+    fn compiles_all(input: String, partials_input: HashMap<String, String>) -> Result<(Template<Mustache>, Partials<Mustache>), CompilingError> {
+        Self::compiles_with_formula(&include_str!("../mustache.toml"), Some(input), Some(partials_input))
     }
 }
 
@@ -82,33 +96,12 @@ impl TemplateEngine<Mustache, Value, String> for Mustache {
                         unimplemented!()
                     }
                     Section(ref key) => {
-                        /*
-                        let mut slices: Vec<Value> = vec![];
+                        let close = Mustache::Close(key.clone());
 
-                        match key.clone().as_ref() {
-                            "." => {
-                                if let Value::Array(mut values) = context.clone() {
-                                    slices.append(&mut values);
-                                }
-                            },
-                            _ => {
-                                if let Some(mut values) = interpolate_section(&key, &context) {
-                                    slices.append(&mut values);
-                                }
-                            }
-                        }
-
-                        if let Some(section) = template.split_until(&Mustache::Close(key.clone())) {
-                            for slice in slices {
-                                let mut new_contexts = global.clone();
-                                new_contexts.push(slice); // global context is needed
-
-                                println!("{:?}", section);
-                                println!("{:?}", new_contexts);
-                                match Mustache::render(section.clone(), partials.clone(), new_contexts.clone()) {
-                                    Ok(write) => {
-                                        writter.write(&write);
-                                    },
+                        if let Some(section) = template.split_until(&close) {
+                            for new_context in interpolate_section(&key, &context, &global) {
+                                match Mustache::render(section.clone(), partials.clone(), new_context) {
+                                    Ok(write) => writter.write(&write),
                                     Err(error) => return Err(error)
                                 }
                             }
@@ -117,35 +110,40 @@ impl TemplateEngine<Mustache, Value, String> for Mustache {
                                 String::from("Incomplete template")
                             ));
                         }
-                        */
-                        let mut extr = Extractor::new(key.clone());
-                        //println!("{:?}", context);
+                    },
 
-                        match key.clone().as_ref() {
-                            "." => {
-                                if let Value::Array(mut values) = context.clone() {
-                                    extr.append(&mut values);
-                                }
-                            },
-                            _ => {
-                                if let Some(mut values) = interpolate_section(&key, &context) {
-                                    extr.append(&mut values);
+
+                    InvertedSection(ref key) => {
+                        let close = Mustache::Close(key.clone());
+
+                        if let Some(section) = template.split_until(&close) {
+                            for new_context in interpolate_inverted(&key, &context, &global) {
+                                match Mustache::render(section.clone(), partials.clone(), new_context) {
+                                    Ok(write) => writter.write(&write),
+                                    Err(error) => return Err(error)
                                 }
                             }
+                        } else {
+                            return Err(RenderingError::InvalidStatement(
+                                String::from("Incomplete template")
+                            ));
                         }
-
-                        match extr.extract(&mut template, partials.clone(), &global) {
-                            Ok(write) => writter.write(&write),
-                            Err(err) => return Err(err)
-                        }
-                    },
-
-
-                    InvertedSection(_) => {
-
                     },
                     Close(_) => {}
-                    Partial(_) => {}
+                    Partial(ref key) => {
+                        if let Some(template) = partials.get(key) {
+                            let mut new_contexts = contexts.clone();
+
+                            if let Some(context) = contexts.last() {
+                                new_contexts = vec![context.clone()];
+                            }
+
+                            match Mustache::render(template.clone(), partials.clone(), new_contexts) {
+                                Ok(write) => writter.write(&write),
+                                Err(error) => return Err(error)
+                            }
+                        }
+                    },
                     Comment(_) => {}
                     Default(ref value) => {
                         writter.write(&value);

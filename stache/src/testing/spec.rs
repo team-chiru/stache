@@ -2,7 +2,7 @@ extern crate serde;
 extern crate serde_yaml;
 extern crate serde_json;
 
-use self::serde_json::Value;
+use std::collections::HashMap;
 use file;
 
 #[derive(Deserialize, Debug)]
@@ -19,7 +19,7 @@ pub struct Test<Input, Output> {
     pub expected: Output,
 
     #[serde(default)]
-    pub partials: Value
+    pub partials: HashMap<String, String>
 }
 
 impl<Input, Output> Spec<Test<Input, Output>>

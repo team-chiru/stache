@@ -1,6 +1,3 @@
-use serde_json::Value;
-
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
@@ -43,7 +40,8 @@ for<'de> Output: Debug + Clone + serde::Deserialize<'de> {
     fn process(&self) -> Option<Output> {
         if let Some(ref test) = self.test {
             let data = vec![test.data.clone()];
-            let (tmpl, partials) = R::compiles(test.template.clone(), hashmap![]).unwrap();
+
+            let (tmpl, partials) = R::compiles_all(test.template.clone(), test.partials.clone()).unwrap();
 
             Some(R::render(tmpl, partials, data).unwrap())
         } else {
@@ -53,8 +51,8 @@ for<'de> Output: Debug + Clone + serde::Deserialize<'de> {
 
     fn debug(&self) -> Option<(Template<R>, Partials<R>, Input)> {
         if let Some(ref test) = self.test {
-            let (tmpl, partials) = R::compiles(test.template.clone(), hashmap![]).unwrap();
-
+            let (tmpl, partials) = R::compiles_all(test.template.clone(), test.partials.clone()).unwrap();
+            //println!("{:?}", partials);
             Some((tmpl, partials, test.data.clone()))
         } else {
             None

@@ -118,7 +118,7 @@ impl Parser {
             input = next;
         }
 
-        Ok(Template::new(self.compiled.clone()))
+        Ok(Template::new(self.compiled.drain(..).collect()))
     }
 
     pub fn parses_all(&mut self, input: String, partials_input: HashMap<String, String>) -> Result<(Template<DefaultRule>, Partials<DefaultRule>), CompilingError> {
