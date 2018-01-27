@@ -1,0 +1,48 @@
+key_regex = ''' \sa-zA-Z0-9!.\-='^#/!?>&'''
+
+[[rules]]
+    [rules.delimiter]
+    open = "{{"
+    close = "}}"
+
+    [[rules.directives]]
+    name = "interpolation"
+    command = ""
+    iterator = "."
+
+    [[rules.directives]]
+    name = "escaped interpolation"
+    command = "&"
+    iterator = "."
+
+    [[rules.directives]]
+    name = "section"
+    command = "#"
+    iterator = "."
+
+    [[rules.directives]]
+    name = "inverted section"
+    command = "^"
+
+    [[rules.directives]]
+    name = "close"
+    command = "/"
+    iterator = "."
+
+    [[rules.directives]]
+    name = "partial"
+    command = ">"
+
+    [[rules.directives]]
+    name = "comment"
+    command = "!"
+
+[[rules]]
+    [rules.delimiter]
+    open = "{{{"
+    close = "}}}"
+
+    [[rules.directives]]
+    name = "escaped interpolation"
+    command = ""
+    iterator = "."

@@ -1,0 +1,18 @@
+[package]
+name = "mustache"
+version = "0.0.1"
+authors = ["team-chiru@protonmail.com"]
+license = "MIT/Apache-2.0"
+
+[[bin]]
+name = "mustache"
+
+[dependencies]
+serde = "*"
+serde_derive ="*"
+serde_json = "*"
+toml = "*"
+stache = { path = "../stache" }
+
+[dev-dependencies]
+stainless = "*" # FIXME rustup override add nightly-2017-08-29
