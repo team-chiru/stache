@@ -1,14 +1,12 @@
 language: rust
 rust:
-  - stable
-  - beta
   - nightly
 matrix:
   allow_failures:
     - rust: nightly
 env:
   - TEST_DIR=mustache 
-  - TEST_DIR=stache
+  - TEST_DIR=stachemu
 cache: cargo
 before_install:
   - cd $TEST_DIR
