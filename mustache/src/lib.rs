@@ -51,21 +51,21 @@ impl Rule for Mustache {
 
 impl TemplateCompiler for Mustache {
     fn compiles_template(input: String) -> Result<Template<Mustache>, CompilingError> {
-        match Self::compiles_with_formula(&include_str!("../mustache.toml"), Some(input), None) {
+        match Self::compiles(&include_str!("../Mustache.toml"), Some(input), None) {
             Ok((tmpl, _)) => Ok(tmpl),
             Err(err) => Err(err)
         }
     }
 
     fn compiles_partial(partials_input: HashMap<String, String>) -> Result<Partials<Mustache>, CompilingError> {
-        match Self::compiles_with_formula(&include_str!("../mustache.toml"), None, Some(partials_input)) {
+        match Self::compiles(&include_str!("../Mustache.toml"), None, Some(partials_input)) {
             Ok((_, partials)) => Ok(partials),
             Err(err) => Err(err)
         }
     }
 
     fn compiles_all(input: String, partials_input: HashMap<String, String>) -> Result<(Template<Mustache>, Partials<Mustache>), CompilingError> {
-        Self::compiles_with_formula(&include_str!("../mustache.toml"), Some(input), Some(partials_input))
+        Self::compiles(&include_str!("../Mustache.toml"), Some(input), Some(partials_input))
     }
 }
 
@@ -92,9 +92,6 @@ impl TemplateEngine<Mustache, Value, String> for Mustache {
                             writter.write(&write);
                         }
                     },
-                    EscapedInterpolation(_) => {
-                        unimplemented!()
-                    }
                     Section(ref key) => {
                         let close = Mustache::Close(key.clone());
 
@@ -111,8 +108,6 @@ impl TemplateEngine<Mustache, Value, String> for Mustache {
                             ));
                         }
                     },
-
-
                     InvertedSection(ref key) => {
                         let close = Mustache::Close(key.clone());
 
@@ -129,7 +124,7 @@ impl TemplateEngine<Mustache, Value, String> for Mustache {
                             ));
                         }
                     },
-                    Close(_) => {}
+                    Close(_) => {},
                     Partial(ref key) => {
                         if let Some(template) = partials.get(key) {
                             let mut new_contexts = contexts.clone();
@@ -144,7 +139,7 @@ impl TemplateEngine<Mustache, Value, String> for Mustache {
                             }
                         }
                     },
-                    Comment(_) => {}
+                    Comment(_) => {},
                     Default(ref value) => {
                         writter.write(&value);
                     }
