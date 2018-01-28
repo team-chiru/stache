@@ -13,9 +13,8 @@ pub trait TemplateCompiler where for<'de> Self: serde::Deserialize<'de> + Clone 
     fn compiles_partial(partials_input: HashMap<String, String>) -> Result<Partials<Self>, CompilingError>;
     fn compiles_all(input: String, partials_input: HashMap<String, String>) -> Result<(Template<Self>, Partials<Self>), CompilingError>;
 
-    fn compiles_with_formula(config: &str, optional_input: Option<String>, optional_partials: Option<HashMap<String, String>>) -> Result<(Template<Self>, Partials<Self>), CompilingError> {
-
-        let descr = match toml::from_str(&config) {
+    fn compiles(rules_file: &str, optional_input: Option<String>, optional_partials: Option<HashMap<String, String>>) -> Result<(Template<Self>, Partials<Self>), CompilingError> {
+        let descr = match toml::from_str(&rules_file) {
             Ok(descr) => descr,
             Err(_) => return Err(
                 CompilingError::InvalidStatement(
@@ -26,7 +25,7 @@ pub trait TemplateCompiler where for<'de> Self: serde::Deserialize<'de> + Clone 
 
         let mut parser = Parser::init(&descr)?;
 
-        let mut main = match optional_input {
+        let main = match optional_input {
             Some(input) => {
                 let default_main = Trailer::trails(parser.parses(input)?)?;
                 default_main.from_default::<Self>(&descr)

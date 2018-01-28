@@ -30,6 +30,11 @@ impl Writter<String> {
 pub fn interpolate(key: &String, json: &Value) -> Option<String> {
     let mut data = Some(json);
 
+    let key = match key.as_ref() {
+        "." => String::default(),
+        _ => key.clone()
+    };
+
     if *key != String::default() {
         let path = String::from("/") + &key.replace(".", "/");
         data = data.unwrap().pointer(&path);

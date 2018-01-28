@@ -51,21 +51,21 @@ impl Rule for Mustache {
 
 impl TemplateCompiler for Mustache {
     fn compiles_template(input: String) -> Result<Template<Mustache>, CompilingError> {
-        match Self::compiles_with_formula(&include_str!("../mustache.toml"), Some(input), None) {
+        match Self::compiles(&include_str!("../mustache.toml"), Some(input), None) {
             Ok((tmpl, _)) => Ok(tmpl),
             Err(err) => Err(err)
         }
     }
 
     fn compiles_partial(partials_input: HashMap<String, String>) -> Result<Partials<Mustache>, CompilingError> {
-        match Self::compiles_with_formula(&include_str!("../mustache.toml"), None, Some(partials_input)) {
+        match Self::compiles(&include_str!("../mustache.toml"), None, Some(partials_input)) {
             Ok((_, partials)) => Ok(partials),
             Err(err) => Err(err)
         }
     }
 
     fn compiles_all(input: String, partials_input: HashMap<String, String>) -> Result<(Template<Mustache>, Partials<Mustache>), CompilingError> {
-        Self::compiles_with_formula(&include_str!("../mustache.toml"), Some(input), Some(partials_input))
+        Self::compiles(&include_str!("../mustache.toml"), Some(input), Some(partials_input))
     }
 }
 
@@ -83,17 +83,25 @@ impl TemplateEngine<Mustache, Value, String> for Mustache {
 
                 match *rule {
                     Interpolation(ref key) => {
-                        let key = match key.as_ref() {
-                            "." => String::default(),
-                            _ => key.clone()
-                        };
+                        if let Some(write) = interpolate(&key, context) {
+                            let mut encoded = String::default();
 
+                            write.chars().for_each(|c| match c {
+                                '>' => encoded.push_str("&gt;"),
+                                '<' => encoded.push_str("&lt;"),
+                                '&' => encoded.push_str("&amp;"),
+                                '\'' => encoded.push_str("&#39;"),
+                                '"' => encoded.push_str("&quot;"),
+                                _ => encoded.push(c)
+                            });
+
+                            writter.write(&encoded);
+                        }
+                    },
+                    EscapedInterpolation(ref key) => {
                         if let Some(write) = interpolate(&key, context) {
                             writter.write(&write);
                         }
-                    },
-                    EscapedInterpolation(_) => {
-                        unimplemented!()
                     }
                     Section(ref key) => {
                         let close = Mustache::Close(key.clone());
