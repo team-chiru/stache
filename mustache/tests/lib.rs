@@ -23,33 +23,33 @@ describe! mustache_tests {
         describe! simple {
             it "no" { pool.name("No Interpolation"); }
             it "basic" { pool.name("Basic Interpolation"); }
-            // FIXME #5 it "escaping" { pool.name("HTML Escaping"); }
-            // FIXME #5 it "triple" { pool.name("Triple Mustache"); }
-            // FIXME #5 it "ampersand" { pool.name("Ampersand"); }
+            it "escaping" { pool.name("HTML Escaping"); }
+            it "triple" { pool.name("Triple Mustache"); }
+            it "ampersand" { pool.name("Ampersand"); }
         }
 
         describe! integer {
             it "basic" { pool.name("Basic Integer Interpolation"); }
-            // FIXME #5 it "triple" { pool.name("Triple Mustache Integer Interpolation"); }
-            // FIXME #5 it "ampersand" { pool.name("Ampersand Integer Interpolation"); }
+            it "triple" { pool.name("Triple Mustache Integer Interpolation"); }
+            it "ampersand" { pool.name("Ampersand Integer Interpolation"); }
         }
 
         describe! decimal {
             it "basic" { pool.name("Basic Decimal Interpolation"); }
-            // FIXME #5 it "triple" { pool.name("Triple Mustache Decimal Interpolation"); }
-            // FIXME #5 it "ampersand" { pool.name("Ampersand Decimal Interpolation"); }
+            it "triple" { pool.name("Triple Mustache Decimal Interpolation"); }
+            it "ampersand" { pool.name("Ampersand Decimal Interpolation"); }
         }
 
         describe! miss {
             it "basic" { pool.name("Basic Context Miss Interpolation"); }
-            // FIXME #5 it "triple" { pool.name("Triple Mustache Context Miss Interpolation"); }
-            // FIXME #5 it "ampersand" { pool.name("Ampersand Context Miss Interpolation"); }
+            it "triple" { pool.name("Triple Mustache Context Miss Interpolation"); }
+            it "ampersand" { pool.name("Ampersand Context Miss Interpolation"); }
         }
 
         describe! dotted_names {
             it "basic" { pool.name("Dotted Names - Basic Interpolation"); }
-            // FIXME #5 it "triple" { pool.name("Dotted Names - Triple Mustache Interpolation"); }
-            // FIXME #5 it "ampersand" { pool.name("Dotted Names - Ampersand Interpolation"); }
+            it "triple" { pool.name("Dotted Names - Triple Mustache Interpolation"); }
+            it "ampersand" { pool.name("Dotted Names - Ampersand Interpolation"); }
             it "arbitrary depth" { pool.name("Dotted Names - Arbitrary Depth"); }
             it "broken" { pool.name("Dotted Names - Broken Chains"); }
             it "broken resolution" { pool.name("Dotted Names - Broken Chain Resolution"); }
@@ -58,18 +58,18 @@ describe! mustache_tests {
         }
 
          describe! whitespace_sensivity {
-             it "basic whitespace" { pool.name("Interpolation - Surrounding Whitespace"); }
-             // FIXME #5 it "triple whitespace" { pool.name("Triple Mustache - Surrounding Whitespace"); }
-             // FIXME #5 it "ampersand whitespace" { pool.name("Ampersand - Surrounding Whitespace"); }
-             it "basic standalone" { pool.name("Interpolation - Standalone"); }
-             // FIXME #5 it "triple standalone" { pool.name("Triple Mustache - Standalone"); }
-             // FIXME #5 it "ampersand standalone" { pool.name("Ampersand - Standalone"); }
+            it "basic whitespace" { pool.name("Interpolation - Surrounding Whitespace"); }
+            it "triple whitespace" { pool.name("Triple Mustache - Surrounding Whitespace"); }
+            it "ampersand whitespace" { pool.name("Ampersand - Surrounding Whitespace"); }
+            it "basic standalone" { pool.name("Interpolation - Standalone"); }
+            it "triple standalone" { pool.name("Triple Mustache - Standalone"); }
+            it "ampersand standalone" { pool.name("Ampersand - Standalone"); }
          }
 
         describe! whitespace_insensitivity {
             it "basic" { pool.name("Interpolation With Padding"); }
-            // FIXME #5 it "triple" { pool.name("Triple Mustache With Padding"); }
-            // FIXME #5 it "ampersand" { pool.name("Ampersand With Padding"); }
+            it "triple" { pool.name("Triple Mustache With Padding"); }
+            it "ampersand" { pool.name("Ampersand With Padding"); }
         }
     }
 
@@ -215,7 +215,7 @@ describe! mustache_tests {
             it "line endings" { pool.name("Standalone Line Endings"); }
             // FIXME #4 it "without previous line" { pool.name("Standalone Without Previous Line"); }
             // FIXME #4 it "without newline" { pool.name("Standalone Without Newline"); }
-            // FIXME #5 it "standalone indentation" { pool.name("Standalone Indentation"); }
+            // FIXME #4 it "standalone indentation" { pool.name("Standalone Indentation"); }
         }
 
         describe! whitespace_insensitivity {
