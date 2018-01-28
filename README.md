@@ -1,4 +1,6 @@
 # stachemu
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fteam-chiru%2Fstachemu.svg?type=shield)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fteam-chiru%2Fstachemu?ref=badge_shield)
+
 Stachemu uses a super-set of the [Mustache][1] templating syntax in order to build data structures.
 
 > Verlan is an argot in the French language, featuring inversion of syllables in a word, and is common in slang and youth language. [Wikipedia][2]
@@ -71,3 +73,6 @@ and *vice versa* with a compliant mustache renderer.
 
 # license
 see [license file](https://github.com/team-chiru/stachemu/blob/master/LICENSE)
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fteam-chiru%2Fstachemu.svg?type=large)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fteam-chiru%2Fstachemu?ref=badge_large)
