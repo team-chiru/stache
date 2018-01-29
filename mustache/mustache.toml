@@ -6,35 +6,35 @@ key_regex = ''' \sa-zA-Z0-9!.\-='^#/!?>&'''
     close = "}}"
 
     [[rules.directives]]
-    name = "interpolation"
+    name = "Interpolation"
     command = ""
     iterator = "."
 
     [[rules.directives]]
-    name = "escaped interpolation"
+    name = "EscapedInterpolation"
     command = "&"
     iterator = "."
 
     [[rules.directives]]
-    name = "section"
+    name = "Section"
     command = "#"
     iterator = "."
 
     [[rules.directives]]
-    name = "inverted section"
+    name = "InvertedSection"
     command = "^"
 
     [[rules.directives]]
-    name = "close"
+    name = "Close"
     command = "/"
     iterator = "."
 
     [[rules.directives]]
-    name = "partial"
+    name = "Partial"
     command = ">"
 
     [[rules.directives]]
-    name = "comment"
+    name = "Comment"
     command = "!"
 
 [[rules]]
@@ -43,6 +43,6 @@ key_regex = ''' \sa-zA-Z0-9!.\-='^#/!?>&'''
     close = "}}}"
 
     [[rules.directives]]
-    name = "escaped interpolation"
+    name = "EscapedInterpolation"
     command = ""
     iterator = "."

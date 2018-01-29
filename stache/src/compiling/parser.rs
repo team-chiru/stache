@@ -1,11 +1,9 @@
 use super::error::CompilingError;
 use status::Status;
-use rule::{ DefaultRule };
-use { Template, Partials };
+use rule::DefaultRule;
+use Template;
 use super::matcher::Matcher;
 use expr::{ DescriptionCollector, Delimiter, Expression, Description };
-
-use std::collections::HashMap;
 
 type ParsingStatus = Status<CompilingError>;
 
@@ -120,24 +118,6 @@ impl Parser {
 
         Ok(Template::new(self.compiled.drain(..).collect()))
     }
-
-    pub fn parses_all(&mut self, input: String, partials_input: HashMap<String, String>) -> Result<(Template<DefaultRule>, Partials<DefaultRule>), CompilingError> {
-        unimplemented!()
-    }
-
-        // resets status and prepares second step
-        //self.status = ParsingStatus::default();
-        //self.compiled.reverse();
-
-        // SECOND STEP: trails template to sanitized template
-        /*
-        while let Some(status) = compiler.trails() {
-        if let Some(error) = status.error {
-        return Err(error);
-    }
-    }
-
-    */
 }
 
 #[derive(Debug, Clone)]

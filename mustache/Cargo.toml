@@ -15,4 +15,4 @@ toml = "*"
 stache = { path = "../stache" }
 
 [dev-dependencies]
-stainless = "*" # FIXME rustup override add nightly-2017-08-29
+stainless = "*"

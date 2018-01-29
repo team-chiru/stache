@@ -1,4 +1,3 @@
-#[macro_use] extern crate maplit;
 #[macro_use] extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
@@ -8,6 +7,9 @@ extern crate heck;
 
 pub mod expr;
 pub use self::expr::{ Expression, Command, Delimiter };
+
+mod descriptor;
+pub use self::descriptor::Descriptor;
 
 mod compiling;
 pub use compiling::compiler::TemplateCompiler;
@@ -21,6 +23,7 @@ pub use self::template::Partials;
 
 mod rendering;
 pub use self::rendering::TemplateEngine;
+pub use self::rendering::writer::Writer;
 
 pub mod status;
 pub mod file;

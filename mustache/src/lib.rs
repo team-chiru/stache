@@ -5,15 +5,17 @@ extern crate serde_json;
 use serde_json::Value;
 
 extern crate stache;
-use stache::{ Template, TemplateEngine, TemplateCompiler, Partials };
-use stache::testing::{ Pool };
+use stache::{ Template, TemplateEngine, TemplateCompiler };
+use stache::{ Descriptor, Partials, Writer };
+use stache::testing::Pool;
 use stache::rule::Rule;
-use stache::error::{ RenderingError, CompilingError };
-
-use std::collections::HashMap;
+use stache::error::{ RenderingError };
 
 mod toolkit;
 use self::toolkit::*;
+
+mod writer;
+use self::writer::StringWriter;
 
 #[derive(Deserialize, PartialEq, Debug, Clone)]
 pub enum Mustache {
@@ -50,28 +52,14 @@ impl Rule for Mustache {
 }
 
 impl TemplateCompiler for Mustache {
-    fn compiles_template(input: String) -> Result<Template<Mustache>, CompilingError> {
-        match Self::compiles(&include_str!("../Mustache.toml"), Some(input), None) {
-            Ok((tmpl, _)) => Ok(tmpl),
-            Err(err) => Err(err)
-        }
-    }
-
-    fn compiles_partial(partials_input: HashMap<String, String>) -> Result<Partials<Mustache>, CompilingError> {
-        match Self::compiles(&include_str!("../Mustache.toml"), None, Some(partials_input)) {
-            Ok((_, partials)) => Ok(partials),
-            Err(err) => Err(err)
-        }
-    }
-
-    fn compiles_all(input: String, partials_input: HashMap<String, String>) -> Result<(Template<Mustache>, Partials<Mustache>), CompilingError> {
-        Self::compiles(&include_str!("../Mustache.toml"), Some(input), Some(partials_input))
+    fn get_descriptor() -> Descriptor {
+        Descriptor::from_toml(&include_str!("../Mustache.toml"))
     }
 }
 
 impl TemplateEngine<Mustache, Value, String> for Mustache {
     fn render(template: Template<Mustache>, partials: Partials<Mustache>, contexts: Vec<Value>) -> Result<String, RenderingError> {
-        let mut writter = Writter::new();
+        let mut writer = StringWriter::new();
         let mut template = template.clone();
         let global = contexts.clone();
 
@@ -83,22 +71,33 @@ impl TemplateEngine<Mustache, Value, String> for Mustache {
 
                 match *rule {
                     Interpolation(ref key) => {
-                        let key = match key.as_ref() {
-                            "." => String::default(),
-                            _ => key.clone()
-                        };
-
                         if let Some(write) = interpolate(&key, context) {
-                            writter.write(&write);
+                            let mut encoded = String::default();
+
+                            write.chars().for_each(|c| match c {
+                                '>' => encoded.push_str("&gt;"),
+                                '<' => encoded.push_str("&lt;"),
+                                '&' => encoded.push_str("&amp;"),
+                                '\'' => encoded.push_str("&#39;"),
+                                '"' => encoded.push_str("&quot;"),
+                                _ => encoded.push(c)
+                            });
+
+                            writer.write(&encoded);
                         }
                     },
+                    EscapedInterpolation(ref key) => {
+                        if let Some(write) = interpolate(&key, context) {
+                            writer.write(&write);
+                        }
+                    }
                     Section(ref key) => {
                         let close = Mustache::Close(key.clone());
 
                         if let Some(section) = template.split_until(&close) {
                             for new_context in interpolate_section(&key, &context, &global) {
                                 match Mustache::render(section.clone(), partials.clone(), new_context) {
-                                    Ok(write) => writter.write(&write),
+                                    Ok(write) => writer.write(&write),
                                     Err(error) => return Err(error)
                                 }
                             }
@@ -114,7 +113,7 @@ impl TemplateEngine<Mustache, Value, String> for Mustache {
                         if let Some(section) = template.split_until(&close) {
                             for new_context in interpolate_inverted(&key, &context, &global) {
                                 match Mustache::render(section.clone(), partials.clone(), new_context) {
-                                    Ok(write) => writter.write(&write),
+                                    Ok(write) => writer.write(&write),
                                     Err(error) => return Err(error)
                                 }
                             }
@@ -124,7 +123,7 @@ impl TemplateEngine<Mustache, Value, String> for Mustache {
                             ));
                         }
                     },
-                    Close(_) => {},
+                    Close(_) | Comment(_) => {},
                     Partial(ref key) => {
                         if let Some(template) = partials.get(key) {
                             let mut new_contexts = contexts.clone();
@@ -134,24 +133,23 @@ impl TemplateEngine<Mustache, Value, String> for Mustache {
                             }
 
                             match Mustache::render(template.clone(), partials.clone(), new_contexts) {
-                                Ok(write) => writter.write(&write),
+                                Ok(write) => writer.write(&write),
                                 Err(error) => return Err(error)
                             }
                         }
                     },
-                    Comment(_) => {},
                     Default(ref value) => {
-                        writter.write(&value);
+                        writer.write(&value);
                     }
                 }
 
-                if writter.is_written || rule.is_dotted() {
-                    writter.reset();
+                if writer.is_written || rule.is_dotted() {
+                    writer.reset();
                     break;
                 }
             }
         }
 
-        Ok(writter.buffer)
+        Ok(writer.buffer)
     }
 }

@@ -1,34 +1,12 @@
-#![allow(dead_code)]
 use serde_json::Value;
-
-#[derive(Debug, Clone)]
-pub struct Writter<Output> {
-    pub buffer: Output,
-    pub is_written: bool
-}
-
-impl<Output> Writter<Output> where Output: Default {
-    pub fn new() -> Self {
-        Writter {
-            buffer: Output::default(),
-            is_written: false
-        }
-    }
-
-    pub fn reset(&mut self) {
-        self.is_written = false;
-    }
-}
-
-impl Writter<String> {
-    pub fn write(&mut self, new: &String) {
-        self.buffer.push_str(&new);
-        self.is_written = true;
-    }
-}
 
 pub fn interpolate(key: &String, json: &Value) -> Option<String> {
     let mut data = Some(json);
+
+    let key = match key.as_ref() {
+        "." => String::default(),
+        _ => key.clone()
+    };
 
     if *key != String::default() {
         let path = String::from("/") + &key.replace(".", "/");

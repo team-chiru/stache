@@ -13,7 +13,7 @@ type StachemuPool = Pool<String, Value>;
 
 describe! stachemu_tests {
     before_each {
-        let base = String::from("specs/stachemu/");
+        let base = String::from("stachemu/spec/");
         let mut pool = StachemuPool::default();
     }
 
