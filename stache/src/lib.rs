@@ -23,7 +23,6 @@ pub use self::template::Partials;
 
 mod rendering;
 pub use self::rendering::TemplateEngine;
-pub use self::rendering::writer::Writer;
 
 pub mod status;
 pub mod file;

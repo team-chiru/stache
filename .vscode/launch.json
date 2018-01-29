@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Mustache",
+            "program": "${workspaceRoot}/stache/mustache/target/debug/mustache",
+            "args": [],
+            "cwd": "${workspaceRoot}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Stachemu",
+            "program": "${workspaceRoot}/stache/mustache/target/debug/stachemu",
+            "args": [],
+            "cwd": "${workspaceRoot}"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Stache",
+            "configurations": ["Mustache", "Stachemu"]
+        }
+    ]
+}

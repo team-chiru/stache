@@ -1,19 +1,21 @@
+#![feature(slice_concat_ext)]
+#![allow(unused_variables)]
+
 #[macro_use] extern crate serde_derive;
 
 extern crate serde_json;
-use serde_json::Value;
+use serde_json::{ Value, Map };
 
 extern crate stache;
-use stache::{ Template, TemplateEngine, TemplateCompiler, Partials };
+use stache::{ Descriptor, Template, TemplateEngine, TemplateCompiler, Partials };
 use stache::testing::{ Pool };
-use stache::rule::{ Rule, Map };
-use stache::error::{ RenderingError, CompilingError };
-use stache::expr::Description;
-
-use std::collections::HashMap;
+use stache::error::{ RenderingError };
 
 mod toolkit;
 use self::toolkit::*;
+
+mod writer;
+use self::writer::ObjectWriter;
 
 #[derive(Deserialize, PartialEq, Debug, Clone)]
 pub enum Stachemu {
@@ -21,22 +23,24 @@ pub enum Stachemu {
     Default(String)
 }
 
-pub type Test = Pool<Stachemu, Value, String>;
+pub type Test = Pool<Stachemu, String, Value>;
 
 impl Default for Stachemu {
     fn default() -> Self { Stachemu::Default(String::default()) }
 }
 
-impl TemplateCompiler for Mustache {
-    fn get_description() -> Description {
-        Description::from_toml(&include_str!("../Stachemu.toml"))
+impl TemplateCompiler for Stachemu {
+    fn get_descriptor() -> Descriptor {
+        Descriptor::from_toml(&include_str!("../Stachemu.toml"))
     }
 }
 
-impl TemplateEngine<Stachemu, Value, String> for Stachemu {
-    fn render(template: Template<Stachemu>, partials: Partials<String, Template>, contexts: Vec<String>) -> Result<Value, RenderingError> {
+impl TemplateEngine<Stachemu, String, Value> for Stachemu {
+    fn render(template: Template<Stachemu>, partials: Partials<Stachemu>, contexts: Vec<String>) -> Result<Value, RenderingError> {
         let mut output = Value::Null;
         let mut tmpl = template.clone();
+        let mut writer = ObjectWriter::new(template);
+        let mut result = Value::Null;
         
         let mut context = match contexts.get(0) {
             Some(ctx) => ctx.clone(),
@@ -47,11 +51,11 @@ impl TemplateEngine<Stachemu, Value, String> for Stachemu {
             )
         };
 
-        while let Some(rule) = tmpl.next() {
-            use self::Rule::*;
-            use self::Command::*;
+        while let Some(ref rule) = tmpl.next() {
+            use self::Stachemu::*;
+            let current_rule = rule.clone();
 
-            let engine: Stachemu = match rule {
+            match *rule {
                 Interpolation(ref key) => {
                     let mut new_map = Map::new();
 
@@ -59,48 +63,23 @@ impl TemplateEngine<Stachemu, Value, String> for Stachemu {
                         new_map.insert(key.to_string(), Value::String(value));
                     }
 
-                    Write(Value::Object(new_map))
-                }
+                    result = Value::Object(new_map);
+                },
                 Default(ref value) => {
                     let (to_match, new_context) = context.split_at(value.len());
 
                     if is_matching(value, to_match) {
-                        Command::Write(Value::Object(Map::new()))
+                        result = Value::Object(Map::new());
                     } else {
-                        Command::Write(Value::Null)
+                        result = Value::Null;
                     }
                 },
                 _ => unimplemented!()
             };
 
-            match engine {
-                Skip(next_rule) => unimplemented!(),
-                Extract(next_rule, slices, is_global_needed) => unimplemented!(),
-                Import(key) => unimplemented!(),
-                Write(mut value) => {
-                    let out = reshape_interpolation(value, &template);
-
-                    if let Value::Object(map) = out {
-                        for (key, value) in map {
-                            merge_into(&mut output, &key, &value);
-
-                            if let Value::String(eaten) = value.clone() {
-                                context.drain(..eaten.len());
-                            }
-                        }
-
-                        if let Rule::Default(eaten) = rule.clone() {
-                            context.drain(..eaten.len());
-                        }
-
-                    } else if out == Value::Null {
-                        return Ok(out);
-                    }
-                },
-                None => unimplemented!()
-            }
+            writer.write(result, &mut context, current_rule);
         }
 
-        Ok(output)
+        Ok(writer.buffer)
     }
 }

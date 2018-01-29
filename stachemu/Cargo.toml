@@ -7,5 +7,12 @@ license = "MIT/Apache-2.0"
 [[bin]]
 name = "stachemu"
 
+[dependencies]
+serde = "*"
+serde_derive ="*"
+serde_json = "*"
+toml = "*"
+stache = { path = "../stache" }
+
 [dev-dependencies]
 stainless = "*"

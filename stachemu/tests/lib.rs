@@ -1,4 +1,4 @@
-#![warn(unused_imports)]
+#![allow(unused_imports)]
 #![feature(plugin)]
 #![cfg_attr(test, plugin(stainless))]
 
@@ -6,15 +6,15 @@ extern crate serde_json;
 use self::serde_json::Value;
 
 extern crate stache;
-use stache::engines::{ Stachemu };
-use stache::specs::pool::{ Pool };
+extern crate stachemu;
 
-type StachemuPool = Pool<String, Value>;
+use stachemu::{ Stachemu, Test };
+use stache::testing::{ TestPool };
 
 describe! stachemu_tests {
     before_each {
-        let base = String::from("stachemu/spec/");
-        let mut pool = StachemuPool::default();
+        let base = String::from("spec/");
+        let mut pool = Test::default();
     }
 
     describe! interpolation {
@@ -35,7 +35,7 @@ describe! stachemu_tests {
         }
 
         after_each {
-            let result = pool.process::<Stachemu>().unwrap();
+            let result = pool.process().unwrap();
             let expected = pool.test.unwrap().expected;
 
             println!("expected: \n{:?}", expected);

@@ -6,7 +6,7 @@ use serde_json::Value;
 
 extern crate stache;
 use stache::{ Template, TemplateEngine, TemplateCompiler };
-use stache::{ Descriptor, Partials, Writer };
+use stache::{ Descriptor, Partials };
 use stache::testing::Pool;
 use stache::rule::Rule;
 use stache::error::{ RenderingError };

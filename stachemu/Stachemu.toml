@@ -1,0 +1,11 @@
+key_regex = ''' \sa-zA-Z0-9!.\-='^#/!?>&'''
+
+[[rules]]
+    [rules.delimiter]
+    open = "{{"
+    close = "}}"
+
+    [[rules.directives]]
+    name = "Interpolation"
+    command = ""
+    iterator = "."
