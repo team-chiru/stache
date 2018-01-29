@@ -12,5 +12,5 @@ before_install:
   - cd $TEST_DIR
   - cargo update
 install: cargo install --verbose
-before_script: cargo build --verbose
+# before_script: cargo build --verbose
 script: cargo test --verbose --all

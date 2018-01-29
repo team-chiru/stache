@@ -10,6 +10,7 @@ use stache::{ Descriptor, Partials };
 use stache::testing::Pool;
 use stache::rule::Rule;
 use stache::error::{ RenderingError };
+use stache::expr::{ Directive, Delimiter, RuleHeap, Description };
 
 mod toolkit;
 use self::toolkit::*;
@@ -53,7 +54,69 @@ impl Rule for Mustache {
 
 impl TemplateCompiler for Mustache {
     fn get_descriptor() -> Descriptor {
-        Descriptor::from_toml(&include_str!("../Mustache.toml"))
+        Descriptor::from_description(
+            Description {
+                key_regex: String::from(r#" \sa-zA-Z0-9!.\-='^#/!?>&"#),
+                rules: vec![
+                    RuleHeap {
+                        delimiter: Delimiter {
+                            open: String::from("{{"),
+                            close: String::from("}}")
+                        },
+                        directives: vec![
+                            Directive {
+                                name: String::from("Interpolation"),
+                                command: String::from(""),
+                                iterator: Some(String::from("."))
+                            },
+                            Directive {
+                                name: String::from("EscapedInterpolation"),
+                                command: String::from("&"),
+                                iterator: Some(String::from("."))
+                            },
+                            Directive {
+                                name: String::from("Section"),
+                                command: String::from("#"),
+                                iterator: Some(String::from("."))
+                            },
+                            Directive {
+                                name: String::from("InvertedSection"),
+                                command: String::from("^"),
+                                iterator: None
+                            },
+                            Directive {
+                                name: String::from("Close"),
+                                command: String::from("/"),
+                                iterator: Some(String::from("."))
+                            },
+                            Directive {
+                                name: String::from("Partial"),
+                                command: String::from(">"),
+                                iterator: None
+                            },
+                            Directive {
+                                name: String::from("Comment"),
+                                command: String::from("!"),
+                                iterator: None
+                            }
+                        ]
+                    },
+                    RuleHeap {
+                        delimiter: Delimiter {
+                            open: String::from("{{{"),
+                            close: String::from("}}}")
+                        },
+                        directives: vec![
+                            Directive {
+                                name: String::from("EscapedInterpolation"),
+                                command: String::from(""),
+                                iterator: Some(String::from("."))
+                            }
+                        ]
+                    }
+                ]
+            }
+        )
     }
 }
 

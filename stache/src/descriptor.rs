@@ -7,6 +7,12 @@ pub struct Descriptor {
 }
 
 impl Descriptor {
+    pub fn from_description(descr: Description) -> Self {
+        Self {
+            descr: Some(descr)
+        }
+    }
+
     pub fn from_toml(raw_path: &str) -> Self {
         let descr: Option<Description>;
 

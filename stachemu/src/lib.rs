@@ -10,6 +10,7 @@ extern crate stache;
 use stache::{ Descriptor, Template, TemplateEngine, TemplateCompiler, Partials };
 use stache::testing::{ Pool };
 use stache::error::{ RenderingError };
+use stache::expr::{ Directive, Delimiter, RuleHeap, Description };
 
 mod toolkit;
 use self::toolkit::*;
@@ -31,7 +32,26 @@ impl Default for Stachemu {
 
 impl TemplateCompiler for Stachemu {
     fn get_descriptor() -> Descriptor {
-        Descriptor::from_toml(&include_str!("../Stachemu.toml"))
+        Descriptor::from_description(
+            Description {
+                key_regex: String::from(r#" \sa-zA-Z0-9!.\-='^#/!?>&"#),
+                rules: vec![
+                    RuleHeap {
+                        delimiter: Delimiter {
+                            open: String::from("{{{"),
+                            close: String::from("}}}")
+                        },
+                        directives: vec![
+                            Directive {
+                                name: String::from("EscapedInterpolation"),
+                                command: String::from(""),
+                                iterator: Some(String::from("."))
+                            }
+                        ]
+                    }
+                ]
+            }
+        )
     }
 }
 
