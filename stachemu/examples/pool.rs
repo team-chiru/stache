@@ -2,7 +2,7 @@ extern crate stachemu;
 use stachemu::{ Stachemu, Test };
 
 extern crate stache;
-use stache::{ TemplateEngine };
+use stache::{ TemplateEngine, TemplateCompiler };
 use stache::testing::{ TestPool };
 
 fn main() {
@@ -13,9 +13,11 @@ fn main() {
     pool.name("Dotted Names - Complex Interpolation");
 
     let (template, partials, data) = pool.debug().unwrap();
-    println!("{:?}", template);
-    println!("{:?}", partials);
+
+    let raw_template = String::from("I {{method.how}} {{method.what}}!");
+    let template = Stachemu::compiles_template(raw_template).unwrap();
+    let data = String::from("I say hello!");
     
-    let result = Stachemu::render(template, partials, vec![data]).unwrap();
+    let result = Stachemu::render_once(template, vec![data]);
     println!("{:?}", result);
 }

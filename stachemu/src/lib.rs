@@ -38,12 +38,12 @@ impl TemplateCompiler for Stachemu {
                 rules: vec![
                     RuleHeap {
                         delimiter: Delimiter {
-                            open: String::from("{{{"),
-                            close: String::from("}}}")
+                            open: String::from("{{"),
+                            close: String::from("}}")
                         },
                         directives: vec![
                             Directive {
-                                name: String::from("EscapedInterpolation"),
+                                name: String::from("Interpolation"),
                                 command: String::from(""),
                                 iterator: Some(String::from("."))
                             }

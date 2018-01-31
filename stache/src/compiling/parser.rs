@@ -51,9 +51,27 @@ impl Parser {
             // updates template input
             next_input = Some(remain.to_string());
 
-            let open = String::from(capture.name("open").unwrap().as_str());
-            let close = String::from(capture.name("close").unwrap().as_str());
-            let symbol = String::from(capture.name("symbol").unwrap().as_str());
+            let open;
+            let close;
+            let symbol;
+
+            if let Some(s) = capture.name("open") {
+                open = String::from(s.as_str());
+            } else {
+                return None;
+            }
+
+            if let Some(s) = capture.name("close") {
+                close = String::from(s.as_str());
+            } else {
+                return None;
+            }
+
+            if let Some(s) = capture.name("symbol") {
+                symbol = String::from(s.as_str());
+            } else {
+                symbol = String::default();
+            }
 
             let raw_key = capture.name("key").unwrap().as_str();
             let key = String::from(raw_key.trim());
