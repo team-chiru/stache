@@ -32,26 +32,7 @@ impl Default for Stachemu {
 
 impl TemplateCompiler for Stachemu {
     fn get_descriptor() -> Descriptor {
-        Descriptor::from_description(
-            Description {
-                key_regex: String::from(r#" \sa-zA-Z0-9!.\-='^#/!?>&"#),
-                rules: vec![
-                    RuleHeap {
-                        delimiter: Delimiter {
-                            open: String::from("{{"),
-                            close: String::from("}}")
-                        },
-                        directives: vec![
-                            Directive {
-                                name: String::from("Interpolation"),
-                                command: String::from(""),
-                                iterator: Some(String::from("."))
-                            }
-                        ]
-                    }
-                ]
-            }
-        )
+        Descriptor::from_toml(&file::read("Stachemu.toml"))
     }
 }
 
