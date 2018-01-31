@@ -5,17 +5,19 @@
             "type": "lldb",
             "request": "launch",
             "name": "Mustache",
-            "program": "${workspaceRoot}/stache/mustache/target/debug/mustache",
+            "program": "${workspaceRoot}/mustache/target/debug/mustache",
             "args": [],
-            "cwd": "${workspaceRoot}"
+            "cwd": "${workspaceRoot}",
+            "sourceLanguages": ["rust"]
         },
         {
             "type": "lldb",
             "request": "launch",
             "name": "Stachemu",
-            "program": "${workspaceRoot}/stache/mustache/target/debug/stachemu",
+            "program": "${workspaceRoot}/stachemu/target/debug/stachemu",
             "args": [],
-            "cwd": "${workspaceRoot}"
+            "cwd": "${workspaceRoot}",
+            "sourceLanguages": ["rust"]
         }
     ],
     "compounds": [
